@@ -12,10 +12,11 @@ public class DFileID {
 	public int getDFileID() {
 		return _dFID;
 	}
+
 	    
 	public boolean equals(Object other){
 		DFileID otherID =  (DFileID) other;
-		if(otherID.getID() == _dFID){
+		if(otherID.getDFileID() == _dFID){
 			return true;
 		}
 		return false;
