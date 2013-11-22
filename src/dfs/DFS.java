@@ -24,7 +24,7 @@ public abstract class DFS {
 		this(Constants.vdiskName,format);
 	}
 
-	DFS() {
+	protected DFS() { //Changed to protected
 		this(Constants.vdiskName,false);
 	}
 
