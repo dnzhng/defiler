@@ -5,7 +5,7 @@ public class DFileID {
 
 	private int _dFID;
 
-	DFileID(int dFID) {
+	public DFileID(int dFID) { //Changed this to public
 		_dFID = dFID;
 	}
 
