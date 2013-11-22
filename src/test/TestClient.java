@@ -7,6 +7,7 @@ import dfs.DFS;
 public class TestClient implements Runnable {
 
 	private DFS myDFS;
+	
 
 	private byte[] writeBuffer;
 	private DFileID myID;
