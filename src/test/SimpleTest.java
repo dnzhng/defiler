@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import dfs.DFS;
+import dfs.SimpleDFS;
 
 public class SimpleTest {
 	/**
@@ -15,7 +16,7 @@ public class SimpleTest {
 		String[] clientInfo = {"there","once","was","a","man","who", "named","jan who was struck by lightening. He was ice climbing at the time."};
 		
 		// error here until implement DFS
-		DFS dfs = new DFS();
+		DFS dfs = new SimpleDFS();
 	
 		List<TestClient> clients = new ArrayList<TestClient>();
 		
@@ -32,20 +33,35 @@ public class SimpleTest {
 		}
 		
 		Random r = new Random(911);
-		
+	
 		for(int i =0; i < threads.size(); ++i){
 			clients.get(i).createFile();
-			threads.get(i).sleep(r.nextInt(20));
+			try {
+				threads.get(i).sleep(r.nextInt(20));
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 		for(int i =0; i < threads.size(); ++i){
 			clients.get(i).writeFile();
-			threads.get(i).sleep(r.nextInt(20));
+			try {
+				threads.get(i).sleep(r.nextInt(20));
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 		for(int i =0; i < threads.size(); ++i){
 			clients.get(i).readFile();
-			threads.get(i).sleep(r.nextInt(20));
+			try {
+				threads.get(i).sleep(r.nextInt(20));
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 		for(int i =0; i < threads.size(); ++i){

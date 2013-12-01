@@ -30,6 +30,10 @@
  * Implementation details
  *************************/
 
+Assumption: we will assume that when recovering from a failure (and rebooting), that
+the constants will not change (this means less metadata in the inode blocks)
+
+
 /* 
  * This section should contain the implementation details and a overview of the
  * results. You are required to provide a good README document along with the
