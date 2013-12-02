@@ -94,13 +94,10 @@ public class INode {
 	}
 
 
-	private byte[] toByteArray(int val){
-		int integer = val;
-		byte[] bytes = new byte[Integer.SIZE/8];
-		for (int i = 0; i < Integer.SIZE/8; i++) {
-		    bytes[i] = (byte)(integer >>> (i * 8));
-		}
-		return bytes;
+	private static byte[] toByteArray(int val){
+		ByteBuffer dbuf = ByteBuffer.allocate(Integer.SIZE/8);
+		dbuf.putInt(val);
+		return dbuf.array(); 
 	}
 	
 	
