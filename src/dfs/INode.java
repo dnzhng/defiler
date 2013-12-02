@@ -2,6 +2,7 @@ package dfs;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,67 +11,70 @@ import common.DFileID;
 import dblockcache.DBuffer;
 
 public class INode {
+	
+	
 	private DFileID _ID;
 	private boolean _valid;
-	private int[][] _fragments;
+	private int _headBlock;
+	private int _size;
 	
 	
-	public INode(int[][] fragments){
-		_fragments = fragments;
+	public INode(byte[] inodeData) throws IOException{
+		assert(inodeData.length == Constants.INODE_SIZE);
+		
+		int offset = 0;
+		_ID = new DFileID(readInt(inodeData, offset));
+		
+		initData(inodeData);
+		
 	}
 	
-	public INode(DBuffer iNodeBlock, int offset) throws IOException{
-		
-		int currentOffset = offset;
-		
-		// TODO: get rid of this constant
-		_ID = new DFileID(readInt(iNodeBlock, currentOffset, Constants.INODE_BLOCK_SIZE));
-		
-		currentOffset +=Constants.INODE_BLOCK_SIZE;
 
-		int valid = readInt(iNodeBlock, currentOffset, Constants.INODE_BLOCK_SIZE);
+
+	public INode(DFileID id, byte[] inodeData){
+		_ID = id;
+		initData(inodeData);
+	}
+	
+	
+
+	
+	
+	public INode(DFileID id, boolean valid, int size, int headBlock) {
+		_ID = id;
+		_valid = valid;
+		_size = size;
+		_headBlock = headBlock;
+	}
+	
+	private void initData(byte[] data) {
+		int offset = Integer.SIZE/8;
+		int valid = readInt(data, offset);
+		offset += Integer.SIZE/8;
+		
+		_size = readInt(data, offset);
+		offset += Integer.SIZE/8;
+		_headBlock = readInt(data, offset);
 		
 		if(valid == 0){
 			_valid = true;
 		}
 		else{
 			_valid = false;
-			return;
 		}
-		
-		// how many fragments?
-		// TODO: block size constant
-		int numFrags = (Constants.INODE_SIZE - Constants.INODE_BLOCK_SIZE*2) /Constants.INODE_BLOCK_SIZE;
-		
-		_fragments = new int[numFrags][2];
-		
-		currentOffset +=Constants.INODE_BLOCK_SIZE;
-		for(int i =0; i < numFrags; ++i){
-			
-			int blockNumber = readInt(iNodeBlock, currentOffset, Constants.INODE_BLOCK_SIZE);
-			currentOffset +=Constants.INODE_BLOCK_SIZE;
-			int blockSize = readInt(iNodeBlock, currentOffset, Constants.INODE_BLOCK_SIZE);
-			currentOffset +=Constants.INODE_BLOCK_SIZE;
-			_fragments[i][0] = blockNumber;
-			_fragments[i][1] = blockSize;
-		}
-		
-		
-		
 		
 	}
 	
 	
-	private int readInt(DBuffer iNodeBlock, int offset, int size) throws IOException{
-		byte[] buffer = new byte[4];
+	private int readInt(byte[] data, int offset){
 		
-		int result = iNodeBlock.read(buffer, offset, 4);
+		byte[] integer = new byte[Integer.SIZE/8];
 		
-		if(result != 0){
-			// TODO: what happens when we throw this exception
-			throw new IOException();
+		for(int i = 0; i < Integer.SIZE/8; ++i){
+			integer[i] = data[offset + i];
 		}
-		return new BigInteger(buffer).intValue();
+		ByteBuffer wrapped = ByteBuffer.wrap(integer);
+		return wrapped.getInt(0);
 	}
 
 	public DFileID getDFileID(){
@@ -82,84 +86,63 @@ public class INode {
 	}
 	
 	public int getFileSize(){
-		int size = 0;
-		for(int i = 0; i < _fragments.length; ++i){
-			size += _fragments[i][1];
-		}
-		return size;
+		return _size;
 	}
 	
-	public List<Integer> getBlocks(int offset, int count){
-		List<Integer> res = new ArrayList<Integer>();
+	public int getHeadBlock(){
+		return _headBlock;
+	}
 
-		int currentOffset = offset;
-		
-		int startFragment = 0;
-		
-		for(int i = 0; i < _fragments.length; ++i){
-			if(currentOffset == 0){
-				startFragment = i;
-				break;
-			}
-			
-			if(currentOffset >= _fragments[i][1]){
-				currentOffset -= _fragments[i][1];
-			}
-			else{
-				startFragment = i;
-				break;
-			}			
-		}
-		// currOffset is our offset in the block
-		
-		int currentBlock = _fragments[startFragment][0];
-		
-		int leftInFrag = _fragments[startFragment][1];
-		
-		while(currentOffset >= Constants.BLOCK_SIZE && leftInFrag >= Constants.BLOCK_SIZE){
-			currentBlock += 1;
-			currentOffset -= Constants.BLOCK_SIZE;
-			leftInFrag -= Constants.BLOCK_SIZE;
-		}
-		
-		// current offset is the first block to put in the list.
-		
-		int currentCount = count - offset % Constants.BLOCK_SIZE;
-		leftInFrag -= offset % Constants.BLOCK_SIZE;
-		if(currentCount != count){
-			res.add(currentBlock);
-			currentBlock +=1;
-		
-			leftInFrag -= offset % Constants.BLOCK_SIZE;
-			
-			if(leftInFrag <= 0){
-				startFragment +=1;
-				leftInFrag = _fragments[startFragment][1];
-				currentBlock = _fragments[startFragment][0];
-			}
-		}
-		
-		while(currentCount > 0 && startFragment < _fragments.length){
-			
-			while(leftInFrag > 0 && currentCount > 0){
-				res.add(currentBlock);
-				
-				currentBlock +=1;
-				currentCount -= Constants.BLOCK_SIZE;
-				leftInFrag -= Constants.BLOCK_SIZE;
-			}
-			startFragment +=1;
-			
-			if(startFragment >= _fragments.length){
-				break;
-			}
-			
-			currentBlock = _fragments[startFragment][0];
-			leftInFrag = _fragments[startFragment][1];
 
+	private byte[] toByteArray(int val){
+		int integer = val;
+		byte[] bytes = new byte[Integer.SIZE/8];
+		for (int i = 0; i < Integer.SIZE/8; i++) {
+		    bytes[i] = (byte)(integer >>> (i * 8));
 		}
+		return bytes;
+	}
+	
+	
+	public byte[] toByteArray() {
+		byte[] res = new byte[Constants.INODE_SIZE];
+		
+		byte[] id = toByteArray(_ID.getDFileID());
+		
+		int v = -1;
+		if(_valid){
+			v = 0;
+		}
+		byte[] valid = toByteArray(v);
+		byte[] size = toByteArray(_size);
+		byte[] headBlock = toByteArray(_headBlock);
+		
+		int offset = 0;
+		
+		copyArray(res, id, offset);
+		offset += Integer.SIZE/8;
+		copyArray(res, valid, offset);
+		offset += Integer.SIZE/8;
+		copyArray(res, size, offset);
+		offset += Integer.SIZE/8;
+		copyArray(res, headBlock, offset);
+		offset += Integer.SIZE/8;
+		
+		for(int i = offset; i < res.length; i ++){
+			res[i] = 0;
+		}
+
 		return res;
 	}
+	
+	
+	private void copyArray(byte[] copy, byte[] orig, int offset){
+		
+		for(int i = 0; i < orig.length && i + offset < copy.length; ++i){
+			copy[i+offset] = orig[i];
+		}
+	}
+	
 
 	
 	

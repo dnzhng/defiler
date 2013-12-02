@@ -1,7 +1,9 @@
 package dfs;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import common.Constants;
@@ -34,10 +36,24 @@ public class SimpleDFS extends DFS {
 		NodeLocation location = _freeSpaceManager.allocatedINode();
 
 		DBuffer buffer = _cache.getBlock(location.getBlockNumber());
+		
+		
+		
+		// TODO: constant
+		int dataHead = _freeSpaceManager.allocateBlock(1);
+		
 
-		byte[] inodeData = getInitialINode(id.getDFileID());
-
-		buffer.write(inodeData, location.getOffset(), Constants.INODE_SIZE);
+		INode emptyFile = new INode(id, true, 0, dataHead);
+		byte[] inodeData = emptyFile.toByteArray();
+		
+		
+		byte[] totalBlock = new byte[location.getOffset() + inodeData.length];
+		buffer.read(totalBlock, 0, totalBlock.length - inodeData.length);
+		
+		for(int i = totalBlock.length - inodeData.length; i < totalBlock.length; ++i){
+			totalBlock[i] = inodeData[i - totalBlock.length + inodeData.length];
+		}
+		buffer.write(totalBlock, 0, totalBlock.length);
 
 		_fileAssistant.addFile(id, location);
 		return id;
@@ -80,25 +96,29 @@ public class SimpleDFS extends DFS {
 
 	@Override
 	public void destroyDFile(DFileID dFID) {
-		INode file;
-		try {
-			file = _fileAssistant.getINode(dFID, _cache);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return;
-		}
-		List<Integer> blocks = file.getBlocks(0, file.getFileSize());
+		synchronized (dFID) {
+			INode file;
+			try {
+				file = _fileAssistant.getINode(dFID, _cache);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return;
+			}
 
-		for (int block : blocks) {
-			DBuffer buffer = _cache.getBlock(block);
-			formatBlock(buffer);
-			_freeSpaceManager.freeBlock(block);
+			int currentBlock = file.getHeadBlock();
+			while (currentBlock > 0) {
+				_freeSpaceManager.freeBlock(currentBlock);
+				DBuffer block = _cache.getBlock(currentBlock);
+				currentBlock = getHeader(block)[1];
+				formatBlock(block);
+			}
+
+			NodeLocation location = _fileAssistant.getNodeLocation(dFID);
+			formatNodeLocation(location);
+			_freeSpaceManager.freeINode(location);
+			_fileAssistant.removeFile(dFID);
 		}
-		NodeLocation location = _fileAssistant.getNodeLocation(dFID);
-		formatNodeLocation(location);
-		_freeSpaceManager.freeINode(location);
-		_fileAssistant.removeFile(dFID);
 	}
 
 	private void formatBlock(DBuffer buffer) {
@@ -130,51 +150,52 @@ public class SimpleDFS extends DFS {
 				e.printStackTrace();
 				return -1;
 			}
-			List<Integer> blocks = file.getBlocks(0, count);
+			int currentBlock = file.getHeadBlock();
 
-			int bufferIndex = 0;
 			int currentCount = count;
 
-			for (int i = 0; i < blocks.size(); ++i) {
-				DBuffer block = _cache.getBlock(blocks.get(i));
-				int blockCount = Math.min(currentCount, Constants.BLOCK_SIZE);
-				block.read(buffer, startOffset + bufferIndex, blockCount);
-				currentCount -= blockCount;
-				bufferIndex += blockCount;
+			int currentOffset = 0;
+
+			while (currentCount > 0) {
+				DBuffer block = _cache.getBlock(currentBlock);
+				int readCount = Math.min(currentCount, Constants.BLOCK_SIZE
+						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE);
+
+				block.read(buffer, currentOffset, readCount);
+
+				currentBlock = getHeader(block)[1];
+
+				if (currentBlock < 0) {
+					// BAD!!!
+				}
+				currentOffset += readCount;
+				currentCount -= readCount;
 			}
+
 		}
 
 		return 0;
 	}
 
+	/**
+	 * 
+	 * Size at 0 Next Block at 1
+	 * 
+	 * @param currentBlock
+	 * @return
+	 */
+	private int[] getHeader(DBuffer currentBlock) {
+		byte[] headerBuffer = new byte[Integer.SIZE];
+		currentBlock.read(headerBuffer, 0, Constants.BLOCK_HEADER_LENGTH
+				* Integer.SIZE);
+
+		int[] res = ByteBuffer.wrap(headerBuffer).asIntBuffer().array();
+		return res;
+	}
+
 	@Override
 	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
 		synchronized (dFID) {
-			INode file;
-			try {
-				file = _fileAssistant.getINode(dFID, _cache);
-			} catch (IOException e) {
-				e.printStackTrace();
-				return -1;
-			}
-			List<Integer> blocks = file.getBlocks(0, count);
-
-			if(blocks.size()*Constants.BLOCK_SIZE < count){
-				//TODO: allocate some more space in the INODE
-			}
-			
-			
-			
-			int bufferIndex = 0;
-			int currentCount = count;
-
-			for (int i = 0; i < blocks.size(); ++i) {
-				DBuffer block = _cache.getBlock(blocks.get(i));
-				int bCount = Math.min(Constants.BLOCK_SIZE, currentCount);
-				block.write(buffer, startOffset + bufferIndex, bCount);
-				currentCount -= bCount;
-				bufferIndex += bCount;
-			}
 
 		}
 		return 0;
@@ -182,8 +203,7 @@ public class SimpleDFS extends DFS {
 
 	@Override
 	public int sizeDFile(DFileID dFID) {
-		// TODO: return -1 if not valid file?
-
+		// TODO: return -1 if not valid file
 		synchronized (dFID) {
 			int fileSize = -1;
 			try {

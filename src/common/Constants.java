@@ -23,6 +23,9 @@ public class Constants {
 	// inode block size ... size of Int
 	public static final int INODE_BLOCK_SIZE = 4; // 4 bytes
 	
+	public static final int BLOCK_HEADER_LENGTH = 2;
+	
+	
 	
 	public static final int NUM_OF_CACHE_BLOCKS = 65536; // 2^16
 	public static final int MAX_FILE_SIZE = BLOCK_SIZE*500; // Constraint on the max file size

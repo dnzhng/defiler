@@ -35,7 +35,7 @@ public class SimpleFileAssistant implements FileAssistant{
 		NodeLocation location = _fileOffsets.get(id);
 		
 		DBuffer buffer = cache.getBlock(location.getBlockNumber());
-		return new INode(buffer, location.getOffset());
+		return new INode(id, nodeData);
 		
 	}
 	
