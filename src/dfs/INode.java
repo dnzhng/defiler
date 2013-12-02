@@ -15,6 +15,10 @@ public class INode {
 	private int[][] _fragments;
 	
 	
+	public INode(int[][] fragments){
+		_fragments = fragments;
+	}
+	
 	public INode(DBuffer iNodeBlock, int offset) throws IOException{
 		
 		int currentOffset = offset;
@@ -85,22 +89,78 @@ public class INode {
 		return size;
 	}
 	
-	public List<Integer> getBlocks(){
+	public List<Integer> getBlocks(int offset, int count){
 		List<Integer> res = new ArrayList<Integer>();
+
+		int currentOffset = offset;
+		
+		int startFragment = 0;
+		
 		for(int i = 0; i < _fragments.length; ++i){
-			int currentBlock = _fragments[i][0];
-			int size = _fragments[i][1];
-			
-	
-			while(size > 0){
-				res.add(currentBlock);
-				currentBlock +=1;
-				size -= Constants.BLOCK_SIZE;
+			if(currentOffset == 0){
+				startFragment = i;
+				break;
 			}
+			
+			if(currentOffset >= _fragments[i][1]){
+				currentOffset -= _fragments[i][1];
+			}
+			else{
+				startFragment = i;
+				break;
+			}			
+		}
+		// currOffset is our offset in the block
+		
+		int currentBlock = _fragments[startFragment][0];
+		
+		int leftInFrag = _fragments[startFragment][1];
+		
+		while(currentOffset >= Constants.BLOCK_SIZE && leftInFrag >= Constants.BLOCK_SIZE){
+			currentBlock += 1;
+			currentOffset -= Constants.BLOCK_SIZE;
+			leftInFrag -= Constants.BLOCK_SIZE;
+		}
+		
+		// current offset is the first block to put in the list.
+		
+		int currentCount = count - offset % Constants.BLOCK_SIZE;
+		leftInFrag -= offset % Constants.BLOCK_SIZE;
+		if(currentCount != count){
+			res.add(currentBlock);
+			currentBlock +=1;
+		
+			leftInFrag -= offset % Constants.BLOCK_SIZE;
+			
+			if(leftInFrag <= 0){
+				startFragment +=1;
+				leftInFrag = _fragments[startFragment][1];
+				currentBlock = _fragments[startFragment][0];
+			}
+		}
+		
+		while(currentCount > 0 && startFragment < _fragments.length){
+			
+			while(leftInFrag > 0 && currentCount > 0){
+				res.add(currentBlock);
+				
+				currentBlock +=1;
+				currentCount -= Constants.BLOCK_SIZE;
+				leftInFrag -= Constants.BLOCK_SIZE;
+			}
+			startFragment +=1;
+			
+			if(startFragment >= _fragments.length){
+				break;
+			}
+			
+			currentBlock = _fragments[startFragment][0];
+			leftInFrag = _fragments[startFragment][1];
+
 		}
 		return res;
 	}
-	
+
 	
 	
 	
