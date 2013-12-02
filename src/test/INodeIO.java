@@ -17,7 +17,7 @@ public class INodeIO {
 		int id = 4;
 		boolean valid = true;
 		int size = 746323;
-		int start = 32;
+		int start = -1;
 		
 		
 		INode in = new INode(new DFileID(id), valid, size, start);
