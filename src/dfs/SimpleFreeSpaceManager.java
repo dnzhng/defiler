@@ -1,6 +1,7 @@
 package dfs;
 
 import common.Constants;
+import dfs.freelist.FreeList;
 
 /**
  * Keeps track of free space in the file system and available locations for INodes
@@ -11,6 +12,7 @@ import common.Constants;
 public class SimpleFreeSpaceManager implements FreeSpaceManager {
 
 	boolean[] _inodeFreeMap;
+	FreeList _freeList;
 	
 	public SimpleFreeSpaceManager(){
 		_inodeFreeMap = new boolean[Constants.MAX_DFILES];
@@ -19,20 +21,22 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	
 	@Override
 	public int allocateBlock() {
-		// TODO Auto-generated method stub
-		return 0;
+		return _freeList.allocate();
 	}
 
 	@Override
 	public boolean allocateBlock(int blockID) {
-		// TODO Auto-generated method stub
-		return false;
+		
+		if(_freeList.isAllocated(blockID)){
+			return false;
+		}
+		_freeList.allocate(blockID);
+		return true;
 	}
 
 	@Override
 	public void freeBlock(int block) {
-		// TODO Auto-generated method stub
-
+		_freeList.free(block);
 	}
 
 	@Override
