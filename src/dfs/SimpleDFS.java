@@ -9,7 +9,9 @@ import common.DFileID;
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
 import dfs.FileAssistant.FileAssistant;
+import dfs.FileAssistant.SimpleFileAssistant;
 import dfs.FreeSpaceManager.FreeSpaceManager;
+import dfs.FreeSpaceManager.SimpleFreeSpaceManager;
 
 public class SimpleDFS extends DFS {
 
@@ -17,8 +19,15 @@ public class SimpleDFS extends DFS {
 	private FileAssistant _fileAssistant;
 	private FreeSpaceManager _freeSpaceManager;
 
+	public SimpleDFS(){
+		_fileAssistant = new SimpleFileAssistant();
+		_freeSpaceManager = new SimpleFreeSpaceManager();
+	}
+	
+	
 	@Override
 	public void init() {
+
 		// TODO: initialize cache and file assistant and free space manger
 		int inodeBlocks = Constants.MAX_DFILES*Constants.INODE_SIZE/Constants.BLOCK_SIZE;
 		

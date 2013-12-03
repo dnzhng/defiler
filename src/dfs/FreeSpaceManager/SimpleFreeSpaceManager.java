@@ -7,37 +7,46 @@ import dfs.freelist.FreeList;
 /**
  * Keeps track of free space in the file system and available locations for INodes
  * 
+ * TODO: make sure free list has the correct offset
+ * 
  * @author Scott Valentine
  *
  */
 public class SimpleFreeSpaceManager implements FreeSpaceManager {
 
-	boolean[] _inodeFreeMap;
-	FreeList _freeList;
+	private boolean[] _inodeFreeMap;
+	private FreeList _freeList;
+	private int _offset;
 	
-	public SimpleFreeSpaceManager(){
+	
+	public SimpleFreeSpaceManager(int size){
 		_inodeFreeMap = new boolean[Constants.MAX_DFILES];
+		// TODO: there is a constant here (1)
+		_offset = Constants.MAX_DFILES/Constants.BLOCK_SIZE*Constants.INODE_SIZE + 1;
+		_freeList = new FreeList(size - _offset);
 	}
 	
 	
 	@Override
 	public int allocateBlock() {
-		return _freeList.allocate();
+		return _freeList.allocate() + _offset;
 	}
 
 	@Override
 	public boolean allocateBlock(int blockID) {
 		
-		if(_freeList.isAllocated(blockID)){
+		int block = blockID - _offset;
+		
+		if(_freeList.isAllocated(block)){
 			return false;
 		}
-		_freeList.allocate(blockID);
+		_freeList.allocate(block);
 		return true;
 	}
 
 	@Override
 	public void freeBlock(int block) {
-		_freeList.free(block);
+		_freeList.free(block - _offset);
 	}
 
 	@Override
