@@ -1,6 +1,7 @@
-package dfs;
+package dfs.FreeSpaceManager;
 
 import common.Constants;
+import dfs.NodeLocation;
 import dfs.freelist.FreeList;
 
 /**

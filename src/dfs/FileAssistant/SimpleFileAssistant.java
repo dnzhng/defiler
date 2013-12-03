@@ -1,4 +1,4 @@
-package dfs;
+package dfs.FileAssistant;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,6 +11,8 @@ import common.Constants;
 import common.DFileID;
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
+import dfs.INode;
+import dfs.NodeLocation;
 
 
 /**

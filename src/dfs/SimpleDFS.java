@@ -8,6 +8,8 @@ import common.Constants;
 import common.DFileID;
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
+import dfs.FileAssistant.FileAssistant;
+import dfs.FreeSpaceManager.FreeSpaceManager;
 
 public class SimpleDFS extends DFS {
 

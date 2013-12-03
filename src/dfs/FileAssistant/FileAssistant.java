@@ -1,10 +1,12 @@
-package dfs;
+package dfs.FileAssistant;
 
 import java.io.IOException;
 import java.util.List;
 
 import common.DFileID;
 import dblockcache.DBufferCache;
+import dfs.INode;
+import dfs.NodeLocation;
 
 public interface FileAssistant {
 

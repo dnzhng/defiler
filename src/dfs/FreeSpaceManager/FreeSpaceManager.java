@@ -1,4 +1,6 @@
-package dfs;
+package dfs.FreeSpaceManager;
+
+import dfs.NodeLocation;
 
 public interface FreeSpaceManager {
 
