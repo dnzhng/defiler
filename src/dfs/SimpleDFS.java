@@ -164,10 +164,78 @@ public class SimpleDFS extends DFS {
 		return res;
 	}
 
+	private void setHeader(DBuffer block, int[] header){
+		byte[] data = new byte[Constants.BLOCK_SIZE];
+		byte[] headerData = getByteArray(header);
+		for(int i = 0; i < headerData.length; ++i){
+			int offset = Constants.BLOCK_SIZE-Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/8-1;
+			data[offset + i] = headerData[i];
+		}
+		
+	}
+	
+	
+	private byte[] getByteArray(int[] header) {
+		byte[] res = new byte[header.length * Integer.SIZE / Byte.SIZE];
+
+		int offset = 0;
+		for (int i = 0; i < header.length; ++i) {
+			byte[] val = toByteArray(header[i]);
+
+			for (int j = 0; j < val.length; ++j) {
+				res[offset] = val[j];
+				offset++;
+			}
+		}
+		return res;
+	}
+
 	@Override
 	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
 		synchronized (dFID) {
-
+			INode file;
+			try {
+				file = _fileAssistant.getINode(dFID, _cache);
+			} catch (IOException e) {
+				e.printStackTrace();
+				return -1;
+			}
+			
+			int prevBlock = -1;
+			int currentBlock = file.getHeadBlock();
+			int currentOffset = 0;
+			int currentCount = count;
+			
+			while(currentCount > 0){
+				if(currentBlock < 0){
+					
+					if(prevBlock < 0){
+						// special case! TODO: take care of this even though we imply it is taken care of elsewhere in the code
+					}
+					
+					currentBlock =_freeSpaceManager.allocateBlock(1);
+					DBuffer last = _cache.getBlock(prevBlock);
+					int[] prevHeader = getHeader(last);
+					prevHeader[1] = currentBlock;
+					prevHeader[0] = Constants.BLOCK_SIZE-Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/Byte.SIZE;
+					setHeader(last, prevHeader);
+				}
+				
+				DBuffer current = _cache.getBlock(currentBlock);
+				int writeLen = Math.min(currentCount, Constants.BLOCK_SIZE-Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/Byte.SIZE);
+				current.write(buffer, currentOffset, writeLen);
+				
+				currentCount -= writeLen;
+				currentOffset += writeLen;
+				file.setSize(file.getFileSize() + writeLen);
+				
+				prevBlock = currentBlock;
+				int[] header = getHeader(current);
+				header[0] = writeLen;
+				currentBlock = header[1];
+				setHeader(current, header);
+			}
+			updateINode(_fileAssistant.getNodeLocation(dFID), file);
 		}
 		return 0;
 	}

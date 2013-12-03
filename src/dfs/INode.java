@@ -135,4 +135,8 @@ public class INode {
 		_valid = status;
 	}
 
+	public void setSize(int newFileSize) {
+		_size = newFileSize;
+	}
+
 }
