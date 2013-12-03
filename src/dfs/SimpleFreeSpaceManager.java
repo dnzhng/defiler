@@ -2,6 +2,12 @@ package dfs;
 
 import common.Constants;
 
+/**
+ * Keeps track of free space in the file system and available locations for INodes
+ * 
+ * @author Scott Valentine
+ *
+ */
 public class SimpleFreeSpaceManager implements FreeSpaceManager {
 
 	boolean[] _inodeFreeMap;
@@ -40,14 +46,15 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	}
 
 	private NodeLocation locationOf(int i) {
-		// TODO Auto-generated method stub
-		return null;
+		int offset = Constants.INODE_SIZE * i % Constants.BLOCK_SIZE;
+		int blockNum = Constants.INODE_SIZE*i / Constants.BLOCK_SIZE + Constants.INODE_REGION_START;
+		return new NodeLocation(offset, blockNum);
 	}
 
 
 	@Override
 	public void freeINode(NodeLocation location) {
-
+		_inodeFreeMap[getIndex(location)] = true;
 	}
 
 
@@ -64,9 +71,7 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 
 
 	private int getIndex(NodeLocation location) {
-		//int inodesPerBlock = 
-		//location.getBlockNumber()*
-		return 0;
+		return (location.getBlockNumber() - Constants.INODE_REGION_START)*Constants.BLOCK_SIZE / Constants.INODE_SIZE;
 	}
 
 }
