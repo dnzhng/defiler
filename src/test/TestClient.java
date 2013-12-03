@@ -6,27 +6,27 @@ import dfs.DFS;
 
 public class TestClient implements Runnable {
 
-	private DFS myDFS;
-	
+	private DFS _DFS;
 
-	private byte[] writeBuffer;
-	private DFileID myID;
+
+	private byte[] _writeBuffer;
+	private DFileID _ID;
 
 	private boolean exit = false;
 	
 	public TestClient(DFS dfs, String writeText) {
-		myDFS = dfs;
-		writeBuffer = writeText.getBytes();
+		_DFS = dfs;
+		_writeBuffer = writeText.getBytes();
 
 	}
 	
 	//comment for errorz lolz
 
 	public void createFile(){
-		myID = myDFS.createDFile();
+		_ID = _DFS.createDFile();
 		boolean x = false;
-		for( DFileID id : myDFS.listAllDFiles()){
-			if(id.equals(myID)){
+		for( DFileID id : _DFS.listAllDFiles()){
+			if(id.equals(_ID)){
 				x = true;
 			}
 		}
@@ -34,24 +34,24 @@ public class TestClient implements Runnable {
 	}
 
 	public void writeFile(){
-		myDFS.write(myID, writeBuffer, 0, writeBuffer.length);
+		_DFS.write(_ID, _writeBuffer, 0, _writeBuffer.length);
 	}
 	
 	public void readFile(){
-		byte[] buffer = new byte[writeBuffer.length];
+		byte[] buffer = new byte[_writeBuffer.length];
 
-		myDFS.read(myID, buffer, 0, writeBuffer.length);
+		_DFS.read(_ID, buffer, 0, _writeBuffer.length);
 
 		for (int i = 0; i < buffer.length; ++i) {
-			assert (buffer[i] == writeBuffer[i]);
+			assert (buffer[i] == _writeBuffer[i]);
 		}
 	}
 	
 	public void destroyFile(){
-		byte[] buffer = new byte[writeBuffer.length];
-		myDFS.destroyDFile(myID);
+		byte[] buffer = new byte[_writeBuffer.length];
+		_DFS.destroyDFile(_ID);
 		try{
-			myDFS.read(myID, buffer, 0, writeBuffer.length);
+			_DFS.read(_ID, buffer, 0, _writeBuffer.length);
 		}
 		catch(NullPointerException e){
 			System.out.println("successfully made a file, wrote it, read it back, and deleted it");
