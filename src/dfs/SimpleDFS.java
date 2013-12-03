@@ -17,8 +17,62 @@ public class SimpleDFS extends DFS {
 
 	@Override
 	public void init() {
-		// TODO Auto-generated method stub
+		// TODO: initialize cache and file assistant and free space manger
+		int inodeBlocks = Constants.MAX_DFILES*Constants.INODE_SIZE/Constants.BLOCK_SIZE;
+		
+		for(int i = 1; i <= inodeBlocks; ++i){
+			mapFilesInBlock(i);
+		}
+	}
 
+	private void mapFilesInBlock(int blockID) {
+		DBuffer block = _cache.getBlock(blockID);
+				
+		byte[] buff = new byte[Constants.BLOCK_SIZE];
+		
+		block.read(buff, 0, Constants.BLOCK_SIZE);
+		int offset = 0;
+		
+		while(offset < buff.length){
+			byte[] data = new byte[Constants.INODE_SIZE];
+			for(int i = 0; i < Constants.INODE_SIZE; ++i){
+				data[i] = buff[offset + i];
+			}
+			INode currentBlock;
+			try {
+				currentBlock = new INode(data);
+			} catch (IOException e) {
+				e.printStackTrace();
+				// TODO: BAD BAD BAD
+				return;
+			}
+
+			if(currentBlock.isValid()){
+				addFile(currentBlock, new NodeLocation(blockID, offset));
+			}
+			offset += Constants.INODE_SIZE;
+		}
+	}
+
+	private void addFile(INode currentBlock, NodeLocation location) {
+		DFileID id = currentBlock.getDFileID();
+		
+		_fileAssistant.addFile(id, location);
+		_freeSpaceManager.allocateINode(location);
+		
+		int dataBlock = currentBlock.getHeadBlock();
+
+		while(dataBlock > 0){
+			_freeSpaceManager.allocateBlock(dataBlock);
+			dataBlock = getNextBlock(dataBlock);
+		}
+	}
+	
+	
+
+
+	private int getNextBlock(int dataBlock) {
+		return getHeader(_cache.getBlock(dataBlock))[1];
 	}
 
 	@Override
@@ -27,7 +81,7 @@ public class SimpleDFS extends DFS {
 
 		NodeLocation location = _freeSpaceManager.allocatedINode();
 
-		int dataHead = _freeSpaceManager.allocateBlock(1);
+		int dataHead = _freeSpaceManager.allocateBlock();
 		initEmptyBlock(dataHead);
 
 		INode emptyFile = new INode(id, true, 0, dataHead);
@@ -213,7 +267,7 @@ public class SimpleDFS extends DFS {
 						// special case! TODO: take care of this even though we imply it is taken care of elsewhere in the code
 					}
 					
-					currentBlock =_freeSpaceManager.allocateBlock(1);
+					currentBlock =_freeSpaceManager.allocateBlock();
 					DBuffer last = _cache.getBlock(prevBlock);
 					int[] prevHeader = getHeader(last);
 					prevHeader[1] = currentBlock;

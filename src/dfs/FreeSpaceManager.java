@@ -1,25 +1,18 @@
 package dfs;
 
-import java.util.List;
-
 public interface FreeSpaceManager {
 
 		
-	public int allocateBlock(int numBlocks);
+	public int allocateBlock();
 	
-	/**
-	 * List of all blocks that can be added starting with startingBlock
-	 * 
-	 * @param numBlocks
-	 * @param startingBlock
-	 * @return
-	 */
-	public List<Integer> allocatedBlocks(int numBlocks, int startingBlock);
+	public boolean allocateBlock(int blockID);
 	
 	public void freeBlock(int block);
 	
 	public NodeLocation allocatedINode();
 	
 	public void freeINode(NodeLocation location);
+
+	public boolean allocateINode(NodeLocation location);
 	
 }
