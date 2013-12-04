@@ -19,9 +19,10 @@ public class SimpleDFS extends DFS {
 	private FileAssistant _fileAssistant;
 	private FreeSpaceManager _freeSpaceManager;
 
-	public SimpleDFS(){
+	public SimpleDFS(int size){
 		_fileAssistant = new SimpleFileAssistant();
-		_freeSpaceManager = new SimpleFreeSpaceManager();
+		_freeSpaceManager = new SimpleFreeSpaceManager(size);
+		// TODO: initiate _cache and lower levels.
 	}
 	
 	
