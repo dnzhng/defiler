@@ -49,4 +49,6 @@ public class Constants {
 
 	/* Virtual disk file/store name */
 	public static final String vdiskName = "DSTORE.dat";
+	public static final int INODE_REGION_START = 1;
+	
 }

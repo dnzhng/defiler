@@ -1,31 +1,53 @@
-package dfs;
+package dfs.FileAssistant;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
+import common.Constants;
 import common.DFileID;
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
+import dfs.INode;
+import dfs.NodeLocation;
 
+
+/**
+ * Keeps track of current files and available file names.
+ * 
+ * @author Scott Valentine
+ *
+ */
 
 public class SimpleFileAssistant implements FileAssistant{
 	Map<DFileID, NodeLocation> _fileOffsets;
+	TreeSet<Integer> _freeNames;
 	
 	public SimpleFileAssistant(){
 		_fileOffsets = new HashMap<DFileID, NodeLocation>();
+		initNames();
 	}
 	
+	private void initNames() {
+		_freeNames = new TreeSet<Integer>();
+		for(int i = 0; i < Constants.MAX_DFILES; ++i){
+			_freeNames.add(i);
+		}
+	}
+
 	public void addFile(DFileID id, NodeLocation location){
+		
+		if(_freeNames.contains(id.getDFileID())){
+			_freeNames.remove(id.getDFileID());
+		}
+		
 		_fileOffsets.put(id, location);
 	}
 	
-	public void removeFile(DFileID id){
-		
-		// need to set it to zero!
-		
+	public void removeFile(DFileID id){		
 		_fileOffsets.remove(id);
 	}
 	
@@ -36,9 +58,17 @@ public class SimpleFileAssistant implements FileAssistant{
 		
 		DBuffer buffer = cache.getBlock(location.getBlockNumber());
 		
-		byte[] nodeData = new byte[1];
-		// TODO: this is incorrect
-		return new INode(id, nodeData);
+		byte[] readBuffer = new byte[Constants.BLOCK_SIZE];
+		buffer.read(readBuffer, 0, Constants.BLOCK_SIZE);
+		
+		byte[] inodeData = new byte[Constants.INODE_SIZE];
+		int offset = location.getOffset();
+		
+		
+		for(int i = 0; i< inodeData.length; ++i){
+			inodeData[i] = readBuffer[offset + i];
+		}
+		return new INode(id, inodeData);
 		
 	}
 	
@@ -55,14 +85,12 @@ public class SimpleFileAssistant implements FileAssistant{
 
 	@Override
 	public NodeLocation getNodeLocation(DFileID id) {
-		// TODO Auto-generated method stub
-		return null;
+		return _fileOffsets.get(id);
 	}
 
 	@Override
 	public DFileID getNextFileID() {
-		// TODO Auto-generated method stub
-		return null;
+		return new DFileID(_freeNames.first());
 	}
 
 
