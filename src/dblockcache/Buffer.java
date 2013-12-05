@@ -10,6 +10,7 @@ public class Buffer extends DBuffer {
 	
 	private int _blockID; //the ID used to "getBuffer"
 	private boolean _isDirty; //Check if the buffer is dirty or not
+	// this should be private
 	public boolean _isBusy; //Check if the block is busy doing I/O stuff
 	private boolean _isValid; //Check if the block has contents in it
 	private byte[] _buffer;  //The actual buffer 
@@ -42,6 +43,8 @@ public class Buffer extends DBuffer {
 	@Override
 	public void startPush() {
 		// TODO Auto-generated method stub
+		
+		// it is valid, so this should be true?
 		_isValid = false;
 		_isBusy = true;
 		
@@ -126,6 +129,7 @@ public class Buffer extends DBuffer {
 		}
 		
 		notifyAll();
+		// set _isBusy back to false?
 		return byteCount;
 	}
 	
@@ -156,6 +160,8 @@ public class Buffer extends DBuffer {
 		
 		_isDirty = true;
 		notifyAll();
+		
+		//set _isBusy back to false?
 		return byteCount;
 	}
 

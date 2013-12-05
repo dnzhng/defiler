@@ -10,9 +10,16 @@ import dblockcache.DBuffer;
 
 public class VD extends VirtualDisk{
 
+	public VD(String filename, boolean format) throws FileNotFoundException, IOException {
+		super(filename, format);
+	}
+	
+	public VD(boolean format) throws FileNotFoundException, IOException {
+		super(format);
+	}
+	
 	public VD() throws FileNotFoundException, IOException {
 		super();
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override

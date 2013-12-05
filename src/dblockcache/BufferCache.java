@@ -42,6 +42,8 @@ public class BufferCache extends DBufferCache {
 				
 				_bufferlist.remove(currentbuf);
 				_bufferlist.add(currentbuf); //MRU is the last block in the list, LRU is first. 
+				
+				// What if the block doesn't do any i/o?
 				currentbuf._isBusy = true;
 				return currentbuf;
 			}
@@ -59,12 +61,14 @@ public class BufferCache extends DBufferCache {
 			_blockcount++;
 		}
 		
+		// Is the block returned necessarily busy?
 		newBlock._isBusy = true;
 		newBlock.startFetch();
 		return newBlock;
 		
 	}
 
+	// we need to get rid of this. It doesn't conform to the interface
 	public synchronized void releaseBlock(Buffer buf) {
 		// TODO Auto-generated method stub
 		buf._isBusy = false;
@@ -87,7 +91,7 @@ public class BufferCache extends DBufferCache {
 	@Override
 	public void releaseBlock(DBuffer buf) {
 		// TODO Auto-generated method stub
-		//Not sure what to do with this, because I made a Buffer class rather than DBuffer
+		//Not sure what to do with this, because I made a Buffer class rather than DBuffer		
 	}
 
 }
