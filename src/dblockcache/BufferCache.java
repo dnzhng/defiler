@@ -9,84 +9,111 @@ import virtualdisk.IVirtualDisk;
 public class BufferCache extends DBufferCache {
 
 	private IVirtualDisk _virtualdisk;
-	private int _blockcount;
 	private int _maxblockcount;
 	private ArrayList<DBuffer> _bufferlist;
 	private Set<DBuffer> _heldlist;
-
-	// maybe make filename + format instead of VD
 
 	public BufferCache(int cacheSize, IVirtualDisk disk) {
 		super(cacheSize);
 		_virtualdisk = disk;
 		_bufferlist = new ArrayList<DBuffer>();
-		_blockcount = 0;
 		_maxblockcount = cacheSize;
 		_heldlist = new HashSet<DBuffer>();
 	}
 
 	@Override
-	public synchronized DBuffer getBlock(int blockID) {
-		// block is in the cache already
+	public synchronized DBuffer getBlock(int blockID){
+		DBuffer buffer;
+		if(inCache(blockID)){
+			buffer = pullFromCache(blockID);
+		}
+		else{
+			buffer = pullFromDisk(blockID);
+		}
+		buffer.waitValid();
+		while(_heldlist.contains(buffer)){
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		_heldlist.add(buffer);	
+		return buffer;
+	}
+	
+	
+	private DBuffer pullFromCache(int blockID) {
+		for(int i = 0; i < _bufferlist.size(); ++i){
+			if(_bufferlist.get(i).getBlockID() == blockID){
+				DBuffer res = _bufferlist.remove(i);
+				_bufferlist.add(res);
+				return res;
+			}
+		}
+		return null;
+	}
+
+	private void evictLRU() {
+		if(_bufferlist.size() == 0){
+			// TODO: error.
+			return;
+		}
+		
+		// if all of the blocks are held, wait until someone frees one.
+		if(_heldlist.size() == _bufferlist.size()){
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		for(int i = 0; i < _bufferlist.size(); ++i){
+			DBuffer currentBlock = _bufferlist.get(i);
+			if(!_heldlist.contains(currentBlock)){
+				evict(_bufferlist.remove(i));
+				break;
+			}
+		}
+		
+	}
+	
+	private void evict(DBuffer currentBlock){
+		while(currentBlock.isBusy()){
+			try {
+				currentBlock.wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		if(!currentBlock.checkClean()){
+			startPushThread(currentBlock);
+		}
+	}
+	
+	
+	private DBuffer pullFromDisk(int blockID){
+		if(_bufferlist.size() == _maxblockcount){
+			evictLRU();
+		}
+		DBuffer newBlock = new Buffer(blockID, _virtualdisk);
+		startFetchThread(newBlock);
+		_bufferlist.add(newBlock);
+		return newBlock;
+	}
+	
+	private boolean inCache(int blockID){	
 		for (int i = 0; i < _bufferlist.size(); i++) {
 			DBuffer currentbuf = _bufferlist.get(i);
-			if (currentbuf.getBlockID() == blockID) {
-				while (currentbuf.isBusy()) {
-					try {
-						wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-				while (_heldlist.contains(currentbuf)) {
-					try {
-						wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-
-				_bufferlist.remove(currentbuf);
-				_bufferlist.add(currentbuf); // MRU is the last block in the
-												// list, LRU is first.
-				_heldlist.add(currentbuf);
-				return currentbuf;
+			if(currentbuf.getBlockID() == blockID){
+				return true;
 			}
 		}
-		// block is not in teh cache
-
-		DBuffer newBlock = new Buffer(blockID, _virtualdisk);
-
-		if (_blockcount == _maxblockcount) {// cache is full!!!
-			DBuffer LRUblock = _bufferlist.get(0);
-			while (_heldlist.contains(LRUblock)) { // Theoretically this
-													// hsouldn't happen...
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			_bufferlist.remove(0); // remove head, the LRU.
-			_bufferlist.add(newBlock);
-		} else { // There is space to add the new block!!!!
-			_bufferlist.add(newBlock);
-			_blockcount++;
-		}
-
-		createFThread(newBlock);
-		_heldlist.add(newBlock);
-		newBlock.waitValid();
-		return newBlock;
-
+		return false;
 	}
 
-	private void evictAndReplace(DBuffer block) {
-
-	}
-
-	private void createFThread(DBuffer buf) {
+	private void startFetchThread(DBuffer buf) {
 		FetchWorker worker = new FetchWorker(buf);
 		Thread t = new Thread(worker);
 		t.start();
@@ -97,13 +124,13 @@ public class BufferCache extends DBufferCache {
 		for (int i = 0; i < _bufferlist.size(); i++) {
 			DBuffer currentbuf = _bufferlist.get(i);
 			if (!currentbuf.checkClean()) {
-				createPThread(currentbuf);
+				startPushThread(currentbuf);
 			}
 		}
 
 	}
 
-	private void createPThread(DBuffer buf) {
+	private void startPushThread(DBuffer buf) {
 		PushWorker worker = new PushWorker(buf);
 		Thread t = new Thread(worker);
 		t.start();
@@ -111,8 +138,6 @@ public class BufferCache extends DBufferCache {
 
 	@Override
 	public synchronized void releaseBlock(DBuffer buf) {
-		// Not sure what to do with this, because I made a Buffer class rather
-		// than DBuffer
 		_heldlist.remove(buf);
 		notifyAll();
 	}

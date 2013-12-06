@@ -26,8 +26,7 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public void startFetch() {
-		// fetching has nothing to do with validity
-		//_isValid = false;
+		_isValid = false;
 		_isBusy = true;
 
 		try {
@@ -40,7 +39,7 @@ public class Buffer extends DBuffer {
 	@Override
 	public void startPush() {
 		//_isValid = false;
-		// pushing it has nothing to do with validity
+		// pushing assumes that the block is valid
 		_isBusy = true;
 
 		try {
