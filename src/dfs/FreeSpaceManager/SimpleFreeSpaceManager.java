@@ -20,10 +20,17 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	
 	
 	public SimpleFreeSpaceManager(int size){
-		_inodeFreeMap = new boolean[Constants.MAX_DFILES];
-		// TODO: there is a constant here (1)
+		
 		_offset = Constants.MAX_DFILES/Constants.BLOCK_SIZE*Constants.INODE_SIZE + 1;
 		_freeList = new FreeList(size - _offset);
+		initInodeFreeMap();
+	}
+	
+	private void initInodeFreeMap(){
+		_inodeFreeMap = new boolean[Constants.MAX_DFILES];
+		for(int i =0; i < _inodeFreeMap.length; ++i){
+			_inodeFreeMap[i] = true;
+		}
 	}
 	
 	

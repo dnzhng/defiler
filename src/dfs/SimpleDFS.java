@@ -40,18 +40,20 @@ public class SimpleDFS extends DFS {
 	}
 	
 	private void initDataStructures(IVirtualDisk vd, int size){
-		_cache = new BufferCache(Constants.NUM_OF_CACHE_BLOCKS, vd);
+		_cache = new BufferCache(Constants.NUM_OF_BLOCKS, vd);
 		_fileAssistant = new SimpleFileAssistant();
 		_freeSpaceManager = new SimpleFreeSpaceManager(size);
 	}
 	
 	@Override
 	public void init() {
+		System.out.println("Initiating DFS...");
 		int inodeBlocks = Constants.MAX_DFILES*Constants.INODE_SIZE/Constants.BLOCK_SIZE;
 		
 		for(int i = 1; i <= inodeBlocks; ++i){
 			mapFilesInBlock(i);
 		}
+		System.out.println("Done Initiating DFS!");
 	}
 
 	private void mapFilesInBlock(int blockID) {
@@ -111,15 +113,21 @@ public class SimpleDFS extends DFS {
 	@Override
 	public DFileID createDFile() {
 		DFileID id = _fileAssistant.getNextFileID();
+		System.out.println("creating file: " + id.getDFileID() + "...");
 
 		NodeLocation location = _freeSpaceManager.allocatedINode();
 
+		System.out.println(location.getBlockNumber() + ", " + location.getOffset());
+		
 		int dataHead = _freeSpaceManager.allocateBlock();
+		System.out.println("Block: " + dataHead);
 		initEmptyBlock(dataHead);
 
 		INode emptyFile = new INode(id, true, 0, dataHead);
 		updateINode(location, emptyFile);
 		_fileAssistant.addFile(id, location);
+		System.out.println("Created file: " + id.getDFileID() + "!");
+
 		return id;
 	}
 	

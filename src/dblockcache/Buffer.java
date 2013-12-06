@@ -15,9 +15,9 @@ public class Buffer extends DBuffer {
 	private byte[] _buffer; // The actual buffer
 	private IVirtualDisk _virtualdisk;
 
-	public Buffer(int blockID, IVirtualDisk _virtualdisk2) {
+	public Buffer(int blockID, IVirtualDisk virtualdisk) {
 		_blockID = blockID;
-		_virtualdisk = _virtualdisk2;
+		_virtualdisk = virtualdisk;
 		_buffer = new byte[Constants.BLOCK_SIZE];
 		_isDirty = false;
 		_isBusy = false;
@@ -169,14 +169,7 @@ public class Buffer extends DBuffer {
 	}
 
 	@Override
-	public synchronized byte[] getBuffer() {
-		while (_isBusy) {
-			try {
-				wait();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+	public byte[] getBuffer() {
 		return _buffer;
 	}
 

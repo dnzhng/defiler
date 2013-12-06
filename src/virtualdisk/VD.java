@@ -25,7 +25,6 @@ public class VD extends VirtualDisk{
 	@Override
 	public void startRequest(DBuffer buf, DiskOperationType operation)
 			throws IllegalArgumentException, IOException {
-		// TODO Auto-generated method stub
 		if (operation == Constants.DiskOperationType.READ) {
 			readBlock(buf);
 		}

@@ -1,9 +1,11 @@
 package test;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+
+import common.Constants;
 
 import dfs.DFS;
 import dfs.SimpleDFS;
@@ -16,7 +18,14 @@ public class SimpleTest {
 		String[] clientInfo = {"there","once","was","a","man","who", "named","jan who was struck by lightening. He was ice climbing at the time."};
 		
 		// error here until implement DFS
-		DFS dfs = new SimpleDFS();
+		DFS dfs;
+		try {
+			dfs = new SimpleDFS(Constants.NUM_OF_BLOCKS, true);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			return;
+		}
+		dfs.init();
 	
 		List<TestClient> clients = new ArrayList<TestClient>();
 		
