@@ -24,10 +24,10 @@ public class TestClient implements Runnable {
 
 	public void createFile(){
 		_ID = _DFS.createDFile();
-		boolean x = false;
+		boolean x = true;
 		for( DFileID id : _DFS.listAllDFiles()){
-			if(id.equals(_ID)){
-				x = true;
+			if(!id.equals(_ID)){
+				x = false;
 			}
 		}
 		assert(x);
