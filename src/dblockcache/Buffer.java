@@ -4,21 +4,20 @@ import java.io.IOException;
 
 import common.Constants;
 import common.Constants.DiskOperationType;
-import virtualdisk.VD;
+import virtualdisk.VirtualDisk;
 
 public class Buffer extends DBuffer {
 	
 	private int _blockID; //the ID used to "getBuffer"
 	private boolean _isDirty; //Check if the buffer is dirty or not
-	// this should be private
-	public boolean _isBusy; //Check if the block is busy doing I/O stuff
+	private boolean _isBusy; //Check if the block is busy doing I/O stuff
 	private boolean _isValid; //Check if the block has contents in it
 	private byte[] _buffer;  //The actual buffer 
-	private VD _virtualdisk;
+	private VirtualDisk _virtualdisk;
 	
-	public Buffer (int blockID, VD disk) {
+	public Buffer (int blockID, VirtualDisk _virtualdisk2) {
 		_blockID = blockID;
-		_virtualdisk = disk;
+		_virtualdisk = _virtualdisk2;
 		_buffer = new byte[Constants.BLOCK_SIZE];
 		_isDirty = false;
 		_isBusy = false;
@@ -175,8 +174,16 @@ public class Buffer extends DBuffer {
 	}
 
 	@Override
-	public byte[] getBuffer() {
-		// would anything happen if something else held this buffer?.
+	public synchronized byte[] getBuffer() {
+		// TODO Auto-generated method stub
+		while (_isBusy) {
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		return _buffer;
 	}
 
