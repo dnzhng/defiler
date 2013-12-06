@@ -25,6 +25,8 @@ public class VD extends VirtualDisk{
 		else if (operation == Constants.DiskOperationType.WRITE) {
 			writeBlock(buf);
 		}
+		
+		buf.ioComplete();
 	}
 
 }
