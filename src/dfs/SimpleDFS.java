@@ -34,7 +34,7 @@ public class SimpleDFS extends DFS {
 		initDataStructures(vd, size);
 	}
 	
-	public SimpleDFS() throws FileNotFoundException, IOException{
+	public SimpleDFS(int size) throws FileNotFoundException, IOException{
 		IVirtualDisk vd = new VD();
 		initDataStructures(vd, size);
 	}

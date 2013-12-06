@@ -4,53 +4,48 @@ import java.io.IOException;
 
 import common.Constants;
 import common.Constants.DiskOperationType;
-import virtualdisk.VirtualDisk;
+import virtualdisk.IVirtualDisk;
 
 public class Buffer extends DBuffer {
-	
-	private int _blockID; //the ID used to "getBuffer"
-	private boolean _isDirty; //Check if the buffer is dirty or not
-	private boolean _isBusy; //Check if the block is busy doing I/O stuff
-	private boolean _isValid; //Check if the block has contents in it
-	private byte[] _buffer;  //The actual buffer 
-	private VirtualDisk _virtualdisk;
-	
-	public Buffer (int blockID, VirtualDisk _virtualdisk2) {
+
+	private int _blockID; // the ID used to "getBuffer"
+	private boolean _isDirty; // Check if the buffer is dirty or not
+	private boolean _isBusy; // Check if the block is busy doing I/O stuff
+	private boolean _isValid; // Check if the block has contents in it
+	private byte[] _buffer; // The actual buffer
+	private IVirtualDisk _virtualdisk;
+
+	public Buffer(int blockID, IVirtualDisk _virtualdisk2) {
 		_blockID = blockID;
 		_virtualdisk = _virtualdisk2;
 		_buffer = new byte[Constants.BLOCK_SIZE];
 		_isDirty = false;
 		_isBusy = false;
-		_isValid = false; 
+		_isValid = false;
 	}
-	
 
 	@Override
 	public void startFetch() {
-		// TODO Auto-generated method stub
-		_isValid = false;
+		// fetching has nothing to do with validity
+		//_isValid = false;
 		_isBusy = true;
-		
+
 		try {
 			_virtualdisk.startRequest(this, DiskOperationType.READ);
 		} catch (IllegalArgumentException | IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
 	@Override
 	public void startPush() {
-		// TODO Auto-generated method stub
-		
-		// it is valid, so this should be true?
-		_isValid = false;
+		//_isValid = false;
+		// pushing it has nothing to do with validity
 		_isBusy = true;
-		
+
 		try {
 			_virtualdisk.startRequest(this, DiskOperationType.WRITE);
 		} catch (IllegalArgumentException | IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -62,7 +57,6 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public synchronized boolean waitValid() {
-		// TODO Auto-generated method stub
 		while (!_isValid) {
 			try {
 				wait();
@@ -95,8 +89,7 @@ public class Buffer extends DBuffer {
 	public boolean isBusy() {
 		return _isBusy;
 	}
-	
-	
+
 	/*
 	 * reads into the buffer[] array from the contents of the DBuffer. Check
 	 * first that the DBuffer has a valid copy of the data! startOffset and
@@ -105,67 +98,70 @@ public class Buffer extends DBuffer {
 	 */
 	@Override
 	public synchronized int read(byte[] buffer, int startOffset, int count) {
-		// TODO Auto-generated method stub
 		int byteCount = count;
-		_isBusy = true; 
-		
-		//Check possible errors errors:
-		if (startOffset < 0 || startOffset > buffer.length 
-				|| startOffset + count > buffer.length) return -1;
-	
-		while(!_isValid) {
-			waitValid();
-		}
-		
+		_isBusy = true;
+
+		// Check possible errors errors:
+		if (startOffset < 0 || startOffset > buffer.length
+				|| startOffset + count > buffer.length)
+			return -1;
+
+		waitValid();
+
 		for (int i = startOffset; i < startOffset + count; i++) {
-			if (i > _buffer.length) return i - startOffset; //end of the buffer, can only read so much
+			if (i > _buffer.length) {
+				// end of the buffer, can only read so much
+				return i - startOffset; 
+
+			}
 			buffer[i] = _buffer[i - startOffset];
 		}
-		
+
 		notifyAll();
-		// set _isBusy back to false?
+		// TODO: set _isBusy back to false?
+		_isBusy = false;
 		return byteCount;
 	}
-	
+
 	/*
 	 * writes into the DBuffer from the contents of buffer[] array. startOffset
 	 * and count are for the buffer array, not the DBuffer. Mark buffer dirty!
 	 * Upon an error, it should return -1, otherwise return number of bytes
 	 * written.
 	 */
-	
+
 	@Override
 	public synchronized int write(byte[] buffer, int startOffset, int count) {
-		// TODO Auto-generated method stub
 		int byteCount = count;
 		_isBusy = true;
-		
+
 		if (startOffset < 0 || startOffset > buffer.length
-				|| startOffset + count > buffer.length) return -1;
-		
-		while(!_isValid) {
-			waitValid();
-		}
+				|| startOffset + count > buffer.length)
+			return -1;
+
+		waitValid();
 		
 		for (int i = startOffset; i < startOffset + count; i++) {
-			if (i > _buffer.length) return i - startOffset;
+			if (i > _buffer.length) {
+				return i - startOffset;
+			}
 			_buffer[i - startOffset] = buffer[i];
 		}
-		
+
 		_isDirty = true;
 		notifyAll();
-		
-		//set _isBusy back to false?
+		// TODO: set _isBusy back to false?
+		_isBusy = false;
 		return byteCount;
 	}
 
 	@Override
 	public synchronized void ioComplete() {
 		_isValid = true;
-		_isBusy = false; 
+		_isBusy = false;
 		_isDirty = false;
 		notifyAll();
-		
+
 	}
 
 	@Override
@@ -175,12 +171,10 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public synchronized byte[] getBuffer() {
-		// TODO Auto-generated method stub
 		while (_isBusy) {
 			try {
 				wait();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
