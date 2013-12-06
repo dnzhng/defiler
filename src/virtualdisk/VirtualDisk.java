@@ -20,7 +20,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	private RandomAccessFile _file;
 	private int _maxVolSize;
 
-	/*
+	/**
 	 * VirtualDisk Constructors
 	 */
 	public VirtualDisk(String volName, boolean format) throws FileNotFoundException,
@@ -58,7 +58,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		this(Constants.vdiskName, false);
 	}
 
-	/*
+	/**
 	 * Start an asynchronous request to the underlying device/disk/volume. 
 	 * -- buf is an DBuffer object that needs to be read/write from/to the volume.	
 	 * -- operation is either READ or WRITE  
@@ -66,7 +66,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	public abstract void startRequest(DBuffer buf, DiskOperationType operation) throws IllegalArgumentException,
 			IOException;
 	
-	/*
+	/**
 	 * Clear the contents of the disk by writing 0s to it
 	 */
 	private void formatStore() {
@@ -83,7 +83,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		}
 	}
 
-	/*
+	/**
 	 * helper function: setBuffer
 	 */
 	private static void setBuffer(byte value, byte b[], int bufSize) {
@@ -92,7 +92,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		}
 	}
 
-	/*
+	/**
 	 * Reads the buffer associated with DBuffer to the underlying
 	 * device/disk/volume
 	 */
@@ -106,7 +106,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		return _file.read(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
 	}
 
-	/*
+	/**
 	 * Writes the buffer associated with DBuffer to the underlying
 	 * device/disk/volume
 	 */

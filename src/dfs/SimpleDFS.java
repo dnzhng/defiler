@@ -1,11 +1,16 @@
 package dfs;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import virtualdisk.IVirtualDisk;
+import virtualdisk.VD;
+
 import common.Constants;
 import common.DFileID;
+import dblockcache.BufferCache;
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
 import dfs.FileAssistant.FileAssistant;
@@ -19,17 +24,29 @@ public class SimpleDFS extends DFS {
 	private FileAssistant _fileAssistant;
 	private FreeSpaceManager _freeSpaceManager;
 
-	public SimpleDFS(int size){
-		_fileAssistant = new SimpleFileAssistant();
-		_freeSpaceManager = new SimpleFreeSpaceManager(size);
-		// TODO: initiate _cache and lower levels.
+	public SimpleDFS(int size, String filename, boolean format) throws FileNotFoundException, IOException{
+		IVirtualDisk vd = new VD(filename, format);
+		initDataStructures(vd, size);
 	}
 	
+	public SimpleDFS(int size, boolean format) throws FileNotFoundException, IOException{
+		IVirtualDisk vd = new VD(format);
+		initDataStructures(vd, size);
+	}
+	
+	public SimpleDFS(int size) throws FileNotFoundException, IOException{
+		IVirtualDisk vd = new VD();
+		initDataStructures(vd, size);
+	}
+	
+	private void initDataStructures(IVirtualDisk vd, int size){
+		_cache = new BufferCache(Constants.NUM_OF_CACHE_BLOCKS, vd);
+		_fileAssistant = new SimpleFileAssistant();
+		_freeSpaceManager = new SimpleFreeSpaceManager(size);
+	}
 	
 	@Override
 	public void init() {
-
-		// TODO: initialize cache and file assistant and free space manger
 		int inodeBlocks = Constants.MAX_DFILES*Constants.INODE_SIZE/Constants.BLOCK_SIZE;
 		
 		for(int i = 1; i <= inodeBlocks; ++i){
@@ -64,6 +81,7 @@ public class SimpleDFS extends DFS {
 			}
 			offset += Constants.INODE_SIZE;
 		}
+		_cache.releaseBlock(block);
 	}
 
 	private void addFile(INode currentBlock, NodeLocation location) {
@@ -84,7 +102,10 @@ public class SimpleDFS extends DFS {
 
 
 	private int getNextBlock(int dataBlock) {
-		return getHeader(_cache.getBlock(dataBlock))[1];
+		DBuffer block = _cache.getBlock(dataBlock);
+		int retVal = getHeader(block)[1];
+		_cache.releaseBlock(block);
+		return retVal;
 	}
 
 	@Override
@@ -114,6 +135,7 @@ public class SimpleDFS extends DFS {
 			totalBlock[i] = inodeData[i - totalBlock.length + inodeData.length];
 		}
 		buffer.write(totalBlock, 0, totalBlock.length);
+		_cache.releaseBlock(buffer);
 	}
 	
 	
@@ -137,7 +159,8 @@ public class SimpleDFS extends DFS {
 			buffer[i] = size[i];
 			buffer[i + size.length] = next[i];
 		}
-		block.write(buffer, 0, Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/8);	
+		block.write(buffer, 0, Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/8);
+		_cache.releaseBlock(block);
 	}
 	
 	
@@ -159,6 +182,7 @@ public class SimpleDFS extends DFS {
 				_freeSpaceManager.freeBlock(currentBlock);
 				DBuffer block = _cache.getBlock(currentBlock);
 				currentBlock = getHeader(block)[1];
+				_cache.releaseBlock(block);
 			}
 			
 			NodeLocation location = _fileAssistant.getNodeLocation(dFID);
@@ -202,6 +226,7 @@ public class SimpleDFS extends DFS {
 				}
 				currentOffset += readCount;
 				currentCount -= readCount;
+				_cache.releaseBlock(block);
 			}
 
 		}
@@ -285,6 +310,7 @@ public class SimpleDFS extends DFS {
 					prevHeader[1] = currentBlock;
 					prevHeader[0] = Constants.BLOCK_SIZE-Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/Byte.SIZE;
 					setHeader(last, prevHeader);
+					_cache.releaseBlock(last);
 				}
 				
 				DBuffer current = _cache.getBlock(currentBlock);
@@ -300,6 +326,7 @@ public class SimpleDFS extends DFS {
 				header[0] = writeLen;
 				currentBlock = header[1];
 				setHeader(current, header);
+				_cache.releaseBlock(current);
 			}
 			updateINode(_fileAssistant.getNodeLocation(dFID), file);
 		}

@@ -14,6 +14,8 @@ public class BufferCache extends DBufferCache {
 	private int _maxblockcount;
 	private ArrayList<Buffer> _bufferlist;
 
+	// maybe make filename + format instead of VD
+	
 	public BufferCache(int cacheSize, VD disk) {
 		// 		_cacheSize = cacheSize * Constants.BLOCK_SIZE; This is what happens in the super?? 
 			super(cacheSize);

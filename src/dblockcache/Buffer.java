@@ -58,7 +58,6 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public boolean checkValid() {
-		// TODO Auto-generated method stub
 		return _isValid;
 	}
 
@@ -78,18 +77,15 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public boolean checkClean() {
-		// TODO Auto-generated method stub
 		return !_isDirty;
 	}
 
 	@Override
 	public synchronized boolean waitClean() {
-		// TODO Auto-generated method stub
 		while (_isDirty) {
 			try {
 				wait();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -98,7 +94,6 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public boolean isBusy() {
-		// TODO Auto-generated method stub
 		return _isBusy;
 	}
 	
@@ -167,7 +162,6 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public synchronized void ioComplete() {
-		// TODO Auto-generated method stub
 		_isValid = true;
 		_isBusy = false; 
 		_isDirty = false;
@@ -177,13 +171,12 @@ public class Buffer extends DBuffer {
 
 	@Override
 	public int getBlockID() {
-		// TODO Auto-generated method stub
 		return _blockID;
 	}
 
 	@Override
 	public byte[] getBuffer() {
-		// TODO Auto-generated method stub
+		// would anything happen if something else held this buffer?.
 		return _buffer;
 	}
 

@@ -68,6 +68,7 @@ public class SimpleFileAssistant implements FileAssistant{
 		for(int i = 0; i< inodeData.length; ++i){
 			inodeData[i] = readBuffer[offset + i];
 		}
+		cache.releaseBlock(buffer);
 		return new INode(id, inodeData);
 		
 	}
