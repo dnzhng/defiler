@@ -96,7 +96,6 @@ public class BufferCache extends DBufferCache {
 
 	@Override
 	public synchronized void sync() {
-		// TODO Auto-generated method stub
 		for (int i = 0; i < _bufferlist.size(); i++) {
 			DBuffer currentbuf = _bufferlist.get(i);
 			if (!currentbuf.checkClean()) {
