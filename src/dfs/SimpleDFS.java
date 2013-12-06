@@ -3,6 +3,8 @@ package dfs;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.List;
 
 import virtualdisk.IVirtualDisk;
@@ -89,6 +91,8 @@ public class SimpleDFS extends DFS {
 	private void addFile(INode currentBlock, NodeLocation location) {
 		DFileID id = currentBlock.getDFileID();
 		
+		System.out.println("should only be called during init");
+		
 		_fileAssistant.addFile(id, location);
 		_freeSpaceManager.allocateINode(location);
 		
@@ -107,6 +111,8 @@ public class SimpleDFS extends DFS {
 		DBuffer block = _cache.getBlock(dataBlock);
 		int retVal = getHeader(block)[1];
 		_cache.releaseBlock(block);
+		System.out.println(dataBlock + " --> " + retVal);
+		
 		return retVal;
 	}
 
@@ -117,13 +123,12 @@ public class SimpleDFS extends DFS {
 
 		NodeLocation location = _freeSpaceManager.allocatedINode();
 
-		System.out.println(location.getBlockNumber() + ", " + location.getOffset());
 		
 		int dataHead = _freeSpaceManager.allocateBlock();
-		System.out.println("Block: " + dataHead);
 		initEmptyBlock(dataHead);
 
 		INode emptyFile = new INode(id, true, 0, dataHead);
+		System.out.println(location);
 		updateINode(location, emptyFile);
 		_fileAssistant.addFile(id, location);
 		System.out.println("Created file: " + id.getDFileID() + "!");
@@ -139,8 +144,8 @@ public class SimpleDFS extends DFS {
 		byte[] totalBlock = new byte[location.getOffset() + inodeData.length];
 		buffer.read(totalBlock, 0, totalBlock.length - inodeData.length);
 		
-		for(int i = totalBlock.length - inodeData.length; i < totalBlock.length; ++i){
-			totalBlock[i] = inodeData[i - totalBlock.length + inodeData.length];
+		for(int i = location.getOffset(); i < Constants.INODE_SIZE + location.getOffset(); ++i){
+			totalBlock[i] = inodeData[i-location.getOffset()];
 		}
 		buffer.write(totalBlock, 0, totalBlock.length);
 		_cache.releaseBlock(buffer);
@@ -175,6 +180,7 @@ public class SimpleDFS extends DFS {
 
 	@Override
 	public void destroyDFile(DFileID dFID) {
+		System.out.println("Destroying file: " + dFID.getDFileID() + "...");
 		synchronized (dFID) {
 			INode file;
 			try {
@@ -201,12 +207,14 @@ public class SimpleDFS extends DFS {
 			_freeSpaceManager.freeINode(location);
 			_fileAssistant.removeFile(dFID);
 		}
+		System.out.println("File: " + dFID.getDFileID() + "destroyed!");
 	}
 
 
 	@Override
 	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
 		synchronized (dFID) {
+			System.out.println("reading file: " +dFID.getDFileID() +"...");
 			INode file;
 			try {
 				file = _fileAssistant.getINode(dFID, _cache);
@@ -219,7 +227,6 @@ public class SimpleDFS extends DFS {
 			int currentCount = count;
 
 			int currentOffset = startOffset;
-
 			while (currentCount > 0) {
 				DBuffer block = _cache.getBlock(currentBlock);
 				int readCount = Math.min(currentCount, Constants.BLOCK_SIZE
@@ -235,6 +242,8 @@ public class SimpleDFS extends DFS {
 				currentOffset += readCount;
 				currentCount -= readCount;
 				_cache.releaseBlock(block);
+				System.out.println("Done reading: " +dFID.getDFileID() +"!");
+
 			}
 
 		}
@@ -258,9 +267,7 @@ public class SimpleDFS extends DFS {
 		for(int i = 0; i < metadata.length; ++i){
 			metadata[i] = headerBuffer[headerBuffer.length-1-i];
 		}
-		
-		int[] res = ByteBuffer.wrap(metadata).asIntBuffer().array();
-		return res;
+		return readBytes(metadata);
 	}
 
 	private void setHeader(DBuffer block, int[] header){
@@ -271,6 +278,30 @@ public class SimpleDFS extends DFS {
 			data[offset + i] = headerData[i];
 		}
 		
+	}
+	
+	private int[] readBytes(byte[] data){
+		
+		int length = data.length/4;
+		
+		if(data.length% 4 != 0){
+			length -= data.length%4;
+		}
+		int[] res = new int[length];
+		
+		int offset = 0;
+		for(int i =0; i < res.length; ++i){
+			
+			byte[] intData = new byte[4];
+			for(int j = offset; j < 4; ++j){
+				intData[j] = data[j];
+			}
+			
+			res[i] = ByteBuffer.wrap(intData).getInt();
+			offset +=4;
+			
+		}
+		return res;
 	}
 	
 	
@@ -292,6 +323,9 @@ public class SimpleDFS extends DFS {
 	@Override
 	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
 		synchronized (dFID) {
+			System.out.println("Writing file: " +dFID.getDFileID() +"...");
+
+			
 			INode file;
 			try {
 				file = _fileAssistant.getINode(dFID, _cache);
@@ -337,6 +371,8 @@ public class SimpleDFS extends DFS {
 				_cache.releaseBlock(current);
 			}
 			updateINode(_fileAssistant.getNodeLocation(dFID), file);
+			System.out.println("File Written: " +dFID.getDFileID() +"!");
+
 		}
 		return 0;
 	}

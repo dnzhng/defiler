@@ -35,12 +35,12 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	
 	
 	@Override
-	public int allocateBlock() {
+	public synchronized int allocateBlock() {
 		return _freeList.allocate() + _offset;
 	}
 
 	@Override
-	public boolean allocateBlock(int blockID) {
+	public synchronized boolean allocateBlock(int blockID) {
 		
 		int block = blockID - _offset;
 		
@@ -52,14 +52,15 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	}
 
 	@Override
-	public void freeBlock(int block) {
+	public synchronized void freeBlock(int block) {
 		_freeList.free(block - _offset);
 	}
 
 	@Override
-	public NodeLocation allocatedINode() {
+	public synchronized NodeLocation allocatedINode() {
 		for(int i = 0; i < _inodeFreeMap.length; ++i){
 			if(_inodeFreeMap[i]){
+				_inodeFreeMap[i] = false;
 				return locationOf(i);
 			}
 		}
@@ -69,19 +70,19 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	private NodeLocation locationOf(int i) {
 		int offset = Constants.INODE_SIZE * i % Constants.BLOCK_SIZE;
 		int blockNum = Constants.INODE_SIZE*i / Constants.BLOCK_SIZE + Constants.INODE_REGION_START;
-		return new NodeLocation(offset, blockNum);
+		return new NodeLocation(blockNum, offset);
 	}
 
 
 	@Override
-	public void freeINode(NodeLocation location) {
+	public synchronized void freeINode(NodeLocation location) {
 		_inodeFreeMap[getIndex(location)] = true;
 	}
 
 
 
 	@Override
-	public boolean allocateINode(NodeLocation location) {
+	public synchronized boolean allocateINode(NodeLocation location) {
 		int index  = getIndex(location);
 		if(!_inodeFreeMap[index]){
 			return false;

@@ -28,4 +28,8 @@ public class NodeLocation {
 		return _offset;
 	}
 	
+	@Override
+	public String toString(){
+		return "<" +_blockNumber + ", " + _offset + ">";
+	}
 }

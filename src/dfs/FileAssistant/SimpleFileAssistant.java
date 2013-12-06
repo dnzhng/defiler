@@ -38,22 +38,25 @@ public class SimpleFileAssistant implements FileAssistant{
 		}
 	}
 
-	public void addFile(DFileID id, NodeLocation location){
+	public synchronized void addFile(DFileID id, NodeLocation location){
 		
 		if(_freeNames.contains(id.getDFileID())){
 			_freeNames.remove(id.getDFileID());
 		}
 		
+		if(_fileOffsets.containsKey(id)){
+			System.out.println("HELP");
+		}
+		
 		_fileOffsets.put(id, location);
 	}
 	
-	public void removeFile(DFileID id){		
+	public synchronized void removeFile(DFileID id){		
 		_fileOffsets.remove(id);
+		_freeNames.add(id.getDFileID());
 	}
 	
-	public INode getINode(DFileID id, DBufferCache cache) throws IOException{
-		
-		// TODO: what happens if id is not an inode?
+	public synchronized INode getINode(DFileID id, DBufferCache cache) throws IOException{		
 		NodeLocation location = _fileOffsets.get(id);
 		
 		DBuffer buffer = cache.getBlock(location.getBlockNumber());
@@ -74,7 +77,7 @@ public class SimpleFileAssistant implements FileAssistant{
 	}
 	
 	@Override
-	public List<DFileID> getFiles() {
+	public synchronized List<DFileID> getFiles() {
 		
 		List<DFileID> res = new ArrayList<DFileID>();
 		
@@ -85,13 +88,16 @@ public class SimpleFileAssistant implements FileAssistant{
 	}
 
 	@Override
-	public NodeLocation getNodeLocation(DFileID id) {
+	public synchronized NodeLocation getNodeLocation(DFileID id) {
 		return _fileOffsets.get(id);
 	}
 
 	@Override
-	public DFileID getNextFileID() {
-		return new DFileID(_freeNames.first());
+	public synchronized DFileID getNextFileID() {
+		int a=_freeNames.pollFirst();
+		_freeNames.remove(a);
+		DFileID ret = new DFileID(a);
+		return ret;
 	}
 
 

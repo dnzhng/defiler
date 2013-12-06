@@ -25,7 +25,7 @@ public class SimpleTest {
 			e1.printStackTrace();
 			return;
 		}
-		dfs.init();
+		//dfs.init();
 	
 		List<TestClient> clients = new ArrayList<TestClient>();
 		
