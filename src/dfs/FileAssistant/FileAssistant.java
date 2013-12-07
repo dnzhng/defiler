@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import common.DFileID;
-import dblockcache.DBufferCache;
+import dblockcache.DBuffer;
 import dfs.INode;
 import dfs.NodeLocation;
 
@@ -15,7 +15,7 @@ public interface FileAssistant {
 	
 	public void removeFile(DFileID id);
 	
-	public INode getINode(DFileID id, DBufferCache cache) throws IOException;
+	public INode getINode(DFileID id, DBuffer buffer) throws IOException;
 	
 	public List<DFileID> getFiles();
 	

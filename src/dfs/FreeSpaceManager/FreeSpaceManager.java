@@ -1,5 +1,7 @@
 package dfs.FreeSpaceManager;
 
+import dblockcache.DBufferCache;
+import dfs.INode;
 import dfs.NodeLocation;
 
 public interface FreeSpaceManager {
@@ -16,5 +18,7 @@ public interface FreeSpaceManager {
 	public void freeINode(NodeLocation location);
 
 	public boolean allocateINode(NodeLocation location);
+	
+	public void freeFileData(INode file, DBufferCache cache);
 	
 }

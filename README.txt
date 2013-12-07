@@ -33,6 +33,11 @@
 Assumption: we will assume that when recovering from a failure (and rebooting), that
 the constants will not change (this means less metadata in the inode blocks)
 
+Assumption: size is the RAW DATA SIZE of a file (does not include inode data or block metadata)
+	- I think that this is like "file size" and "size on disk" differences
+
+If two threads try to r/w the same file, the second one to request r/w from the DFS will block until the first has finished.
+
 
 /* 
  * This section should contain the implementation details and a overview of the

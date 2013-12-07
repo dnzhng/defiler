@@ -10,7 +10,6 @@ import java.util.TreeSet;
 import common.Constants;
 import common.DFileID;
 import dblockcache.DBuffer;
-import dblockcache.DBufferCache;
 import dfs.INode;
 import dfs.NodeLocation;
 
@@ -56,11 +55,8 @@ public class SimpleFileAssistant implements FileAssistant{
 		_freeNames.add(id.getDFileID());
 	}
 	
-	public synchronized INode getINode(DFileID id, DBufferCache cache) throws IOException{		
+	public synchronized INode getINode(DFileID id, DBuffer buffer) throws IOException{		
 		NodeLocation location = _fileOffsets.get(id);
-		
-		DBuffer buffer = cache.getBlock(location.getBlockNumber());
-		
 		byte[] readBuffer = new byte[Constants.BLOCK_SIZE];
 		buffer.read(readBuffer, 0, Constants.BLOCK_SIZE);
 		
@@ -71,7 +67,6 @@ public class SimpleFileAssistant implements FileAssistant{
 		for(int i = 0; i< inodeData.length; ++i){
 			inodeData[i] = readBuffer[offset + i];
 		}
-		cache.releaseBlock(buffer);
 		return new INode(id, inodeData);
 		
 	}

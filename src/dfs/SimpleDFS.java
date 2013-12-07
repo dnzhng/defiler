@@ -9,7 +9,6 @@ import java.util.List;
 
 import virtualdisk.IVirtualDisk;
 import virtualdisk.VD;
-
 import common.Constants;
 import common.DFileID;
 import dblockcache.BufferCache;
@@ -26,61 +25,269 @@ public class SimpleDFS extends DFS {
 	private FileAssistant _fileAssistant;
 	private FreeSpaceManager _freeSpaceManager;
 
-	public SimpleDFS(int size, String filename, boolean format) throws FileNotFoundException, IOException{
+	public SimpleDFS(int size, String filename, boolean format)
+			throws FileNotFoundException, IOException {
 		IVirtualDisk vd = new VD(filename, format);
 		initDataStructures(vd, size);
 	}
-	
-	public SimpleDFS(int size, boolean format) throws FileNotFoundException, IOException{
+
+	public SimpleDFS(int size, boolean format) throws FileNotFoundException,
+			IOException {
 		IVirtualDisk vd = new VD(format);
 		initDataStructures(vd, size);
 	}
-	
-	public SimpleDFS(int size) throws FileNotFoundException, IOException{
+
+	public SimpleDFS(int size) throws FileNotFoundException, IOException {
 		IVirtualDisk vd = new VD();
 		initDataStructures(vd, size);
 	}
-	
-	private void initDataStructures(IVirtualDisk vd, int size){
-		_cache = new BufferCache(Constants.NUM_OF_BLOCKS, vd);
-		_fileAssistant = new SimpleFileAssistant();
-		_freeSpaceManager = new SimpleFreeSpaceManager(size);
-	}
-	
+
 	@Override
 	public void init() {
 		System.out.println("Initiating DFS...");
-		int inodeBlocks = Constants.MAX_DFILES*Constants.INODE_SIZE/Constants.BLOCK_SIZE;
-		
-		for(int i = 1; i <= inodeBlocks; ++i){
+		int inodeBlocks = Constants.MAX_DFILES * Constants.INODE_SIZE
+				/ Constants.BLOCK_SIZE;
+
+		for (int i = Constants.INODE_REGION_START; i < Constants.INODE_REGION_START
+				+ inodeBlocks; ++i) {
 			mapFilesInBlock(i);
 		}
 		System.out.println("Done Initiating DFS!");
 	}
 
+	@Override
+	public DFileID createDFile() {
+		DFileID newFileID = _fileAssistant.getNextFileID();
+		NodeLocation inodeLocation = _freeSpaceManager.allocatedINode();
+		int dataHead = _freeSpaceManager.allocateBlock();
+		initEmptyBlock(dataHead);
+		INode newFile = new INode(newFileID, true, 0, dataHead);
+
+		// little weird. TODO: maybe fix this?
+		updateINode(inodeLocation, newFile);
+		_fileAssistant.addFile(newFileID, inodeLocation);
+		return newFileID;
+	}
+
+	@Override
+	public void destroyDFile(DFileID dFID) {
+		synchronized (dFID) {
+			INode file;
+			NodeLocation inodeLocation = _fileAssistant.getNodeLocation(dFID);
+			DBuffer inodeBuffer = _cache.getBlock(inodeLocation
+					.getBlockNumber());
+			try {
+				file = _fileAssistant.getINode(dFID, inodeBuffer);
+			} catch (IOException e) {
+				System.err.println("Unable to delete file " + dFID.getDFileID()
+						+ ". Problem reading iNode.");
+				return;
+			}
+			_freeSpaceManager.freeFileData(file, _cache);
+			file.setValid(false);
+			updateINode(inodeLocation, file);
+			_freeSpaceManager.freeINode(inodeLocation);
+			_fileAssistant.removeFile(dFID);
+			_cache.releaseBlock(inodeBuffer);
+		}
+	}
+
+	@Override
+	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
+		synchronized (dFID) {
+			INode file;
+
+			NodeLocation inodeLocation = _fileAssistant.getNodeLocation(dFID);
+			DBuffer inodeBuffer = _cache.getBlock(inodeLocation
+					.getBlockNumber());
+
+			try {
+				file = _fileAssistant.getINode(dFID, inodeBuffer);
+			} catch (IOException e) {
+				System.err.println("Unable to read Inode for file "
+						+ dFID.getDFileID() + ".");
+				_cache.releaseBlock(inodeBuffer);
+				return 0;
+			}
+			_cache.releaseBlock(inodeBuffer);
+
+			int currentBlock = file.getHeadBlock();
+			int currentCount = count;
+			int currentOffset = startOffset;
+
+			while (currentCount > 0) {
+				DBuffer block = _cache.getBlock(currentBlock);
+				int readCount = Math.min(currentCount, Constants.BLOCK_SIZE
+						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+						/ Byte.SIZE);
+
+				block.read(buffer, currentOffset, readCount);
+
+				int bytesRead = readToBuffer(block, buffer, currentOffset,
+						readCount);
+
+				readCount = Math.min(bytesRead, readCount);
+
+				currentBlock = getHeader(block)[1];
+				_cache.releaseBlock(block);
+
+				if (currentBlock < 0) {
+					break;
+				}
+				currentOffset += readCount;
+				currentCount -= readCount;
+			}
+			return count - currentCount;
+		}
+	}
+
+	private int readToBuffer(DBuffer block, byte[] buffer, int offset, int count) {
+		byte[] blockData = new byte[count + Constants.BLOCK_HEADER_LENGTH];
+		int retVal = block.read(blockData, 0, count + Constants.BLOCK_HEADER_LENGTH);
+		retVal -= Constants.BLOCK_HEADER_LENGTH;
+		for (int i = 0; i < retVal; ++i) {
+			buffer[i + offset] = blockData[i + Constants.BLOCK_HEADER_LENGTH];
+		}
+		return retVal;
+	}
+
+	@Override
+	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
+		synchronized (dFID) {
+			NodeLocation inodeLocation = _fileAssistant.getNodeLocation(dFID);
+			DBuffer inodeBuffer = _cache.getBlock(inodeLocation
+					.getBlockNumber());
+			INode file;
+			try {
+				file = _fileAssistant.getINode(dFID, inodeBuffer);
+			} catch (IOException e) {
+				e.printStackTrace();
+				_cache.releaseBlock(inodeBuffer);
+				return 0;
+			}
+			_cache.releaseBlock(inodeBuffer);
+			
+			int prevBlock = -1;
+			int currentBlock = file.getHeadBlock();
+			int currentOffset = 0;
+			int currentCount = count;
+
+			while (currentCount > 0) {
+				if (currentBlock < 0) {
+
+					if (prevBlock < 0) {
+						// special case! TODO: take care of this even though we
+						// imply it is taken care of elsewhere in the code
+					}
+
+					currentBlock = _freeSpaceManager.allocateBlock();
+					DBuffer last = _cache.getBlock(prevBlock);
+					int[] prevHeader = getHeader(last);
+					prevHeader[1] = currentBlock;
+					prevHeader[0] = Constants.BLOCK_SIZE
+							- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+							/ Byte.SIZE;
+					writeHeader(last, prevHeader);
+					_cache.releaseBlock(last);
+				}
+
+				DBuffer current = _cache.getBlock(currentBlock);
+				int writeLen = Math.min(currentCount, Constants.BLOCK_SIZE
+						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+						/ Byte.SIZE);
+				
+				int writtenCount = writeToBuffer(current, buffer, currentOffset, writeLen);
+				
+				writeLen = Math.min(writtenCount, writeLen);
+				
+				currentCount -= writeLen;
+				currentOffset += writeLen;
+				file.setSize(file.getFileSize() + writeLen);
+
+				prevBlock = currentBlock;
+				int[] header = getHeader(current);
+				header[0] = writeLen;
+				currentBlock = header[1];
+				writeHeader(current, header);
+				_cache.releaseBlock(current);
+			}
+			updateINode(_fileAssistant.getNodeLocation(dFID), file);
+			return count - currentCount;
+		}
+	}
+	
+	private int writeToBuffer(DBuffer block, byte[] buffer, int offset, int count){
+		int retval = 0;
+		byte[] blockData = new byte[count + Constants.BLOCK_HEADER_LENGTH];
+		int retVal = block.read(blockData, 0, Constants.BLOCK_HEADER_LENGTH);
+		retVal -= Constants.BLOCK_HEADER_LENGTH;
+		for (int i = 0; i < retVal; ++i) {
+			 blockData[i + Constants.BLOCK_HEADER_LENGTH] = buffer[i + offset];
+		}
+		
+		block.write(blockData, 0, blockData.length);
+		return retval;
+	}
+	
+	
+	
+
+	@Override
+	public int sizeDFile(DFileID dFID) {
+		synchronized (dFID) {
+			int fileSize = -1;
+			NodeLocation inodeLocation = _fileAssistant.getNodeLocation(dFID);
+			DBuffer inodeBuffer = _cache.getBlock(inodeLocation
+					.getBlockNumber());
+			try {
+				fileSize = _fileAssistant.getINode(dFID, inodeBuffer).getFileSize();
+			} catch (IOException e) {
+				System.err.println("Unable to calculate file size for file " + dFID.getDFileID() + ".");
+			}
+			_cache.releaseBlock(inodeBuffer);
+			return fileSize;
+		}
+	}
+
+	@Override
+	public List<DFileID> listAllDFiles() {
+		return _fileAssistant.getFiles();
+	}
+
+	@Override
+	public void sync() {
+		_cache.sync();
+	}
+
+	private void initDataStructures(IVirtualDisk vd, int size) {
+		_cache = new BufferCache(Constants.NUM_OF_BLOCKS, vd);
+		_fileAssistant = new SimpleFileAssistant();
+		_freeSpaceManager = new SimpleFreeSpaceManager(size);
+	}
+
 	private void mapFilesInBlock(int blockID) {
 		DBuffer block = _cache.getBlock(blockID);
-				
-		byte[] buff = new byte[Constants.BLOCK_SIZE];
-		
-		block.read(buff, 0, Constants.BLOCK_SIZE);
+
+		byte[] buffer = new byte[Constants.BLOCK_SIZE];
+
+		block.read(buffer, 0, Constants.BLOCK_SIZE);
 		int offset = 0;
-		
-		while(offset < buff.length){
-			byte[] data = new byte[Constants.INODE_SIZE];
-			for(int i = 0; i < Constants.INODE_SIZE; ++i){
-				data[i] = buff[offset + i];
+
+		while (offset < buffer.length) {
+			byte[] inodeData = new byte[Constants.INODE_SIZE];
+			for (int i = 0; i < Constants.INODE_SIZE; ++i) {
+				inodeData[i] = buffer[offset + i];
 			}
 			INode currentBlock;
 			try {
-				currentBlock = new INode(data);
+				currentBlock = new INode(inodeData);
 			} catch (IOException e) {
-				e.printStackTrace();
-				// TODO: BAD BAD BAD
+				System.err.println("Failure to get Inode from block " + blockID
+						+ ", and offset " + offset + ".");
 				return;
 			}
 
-			if(currentBlock.isValid()){
+			if (currentBlock.isValid()) {
 				addFile(currentBlock, new NodeLocation(blockID, offset));
 			}
 			offset += Constants.INODE_SIZE;
@@ -88,167 +295,54 @@ public class SimpleDFS extends DFS {
 		_cache.releaseBlock(block);
 	}
 
-	private void addFile(INode currentBlock, NodeLocation location) {
-		DFileID id = currentBlock.getDFileID();
-		
-		System.out.println("should only be called during init");
-		
+	private void addFile(INode file, NodeLocation location) {
+		DFileID id = file.getDFileID();
+
 		_fileAssistant.addFile(id, location);
 		_freeSpaceManager.allocateINode(location);
-		
-		int dataBlock = currentBlock.getHeadBlock();
 
-		while(dataBlock > 0){
+		int dataBlock = file.getHeadBlock();
+
+		while (dataBlock > 0) {
 			_freeSpaceManager.allocateBlock(dataBlock);
 			dataBlock = getNextBlock(dataBlock);
 		}
 	}
-	
-	
-
 
 	private int getNextBlock(int dataBlock) {
 		DBuffer block = _cache.getBlock(dataBlock);
 		int retVal = getHeader(block)[1];
 		_cache.releaseBlock(block);
-		System.out.println(dataBlock + " --> " + retVal);
-		
 		return retVal;
 	}
 
-	@Override
-	public DFileID createDFile() {
-		DFileID id = _fileAssistant.getNextFileID();
-		System.out.println("creating file: " + id.getDFileID() + "...");
-
-		NodeLocation location = _freeSpaceManager.allocatedINode();
-
-		
-		int dataHead = _freeSpaceManager.allocateBlock();
-		initEmptyBlock(dataHead);
-
-		INode emptyFile = new INode(id, true, 0, dataHead);
-		System.out.println(location);
-		updateINode(location, emptyFile);
-		_fileAssistant.addFile(id, location);
-		System.out.println("Created file: " + id.getDFileID() + "!");
-
-		return id;
-	}
-	
-	private void updateINode(NodeLocation location, INode inode){
+	private void updateINode(NodeLocation location, INode inode) {
 		DBuffer buffer = _cache.getBlock(location.getBlockNumber());
 
 		byte[] inodeData = inode.toByteArray();
 
 		byte[] totalBlock = new byte[location.getOffset() + inodeData.length];
-		buffer.read(totalBlock, 0, totalBlock.length - inodeData.length);
-		
-		for(int i = location.getOffset(); i < Constants.INODE_SIZE + location.getOffset(); ++i){
-			totalBlock[i] = inodeData[i-location.getOffset()];
+		buffer.read(totalBlock, 0, location.getOffset());
+
+		for (int i = location.getOffset(); i < Constants.INODE_SIZE
+				+ location.getOffset(); ++i) {
+			totalBlock[i] = inodeData[i - location.getOffset()];
 		}
 		buffer.write(totalBlock, 0, totalBlock.length);
 		_cache.releaseBlock(buffer);
 	}
-	
-	
-	
+
 	private byte[] toByteArray(int val) {
-		ByteBuffer dbuf = ByteBuffer.allocate(Integer.SIZE / 8);
+		ByteBuffer dbuf = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE);
 		dbuf.putInt(val);
 		return dbuf.array();
 	}
 
-	private void initEmptyBlock(int blockID){
+	private void initEmptyBlock(int blockID) {
 		DBuffer block = _cache.getBlock(blockID);
-		
-		//TODO: constants!!!
-		byte[] size = toByteArray(0);
-		byte[] next = toByteArray(-1);
-		
-		
-		byte[] buffer = new byte[size.length + next.length];
-		for(int i = 0; i < size.length; ++ i){
-			buffer[i] = size[i];
-			buffer[i + size.length] = next[i];
-		}
-		block.write(buffer, 0, Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/8);
+		int[] initialFileData = { 0, -1 };
+		writeHeader(block, initialFileData);
 		_cache.releaseBlock(block);
-	}
-	
-	
-
-	@Override
-	public void destroyDFile(DFileID dFID) {
-		System.out.println("Destroying file: " + dFID.getDFileID() + "...");
-		synchronized (dFID) {
-			INode file;
-			try {
-				file = _fileAssistant.getINode(dFID, _cache);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				return;
-			}
-
-			int currentBlock = file.getHeadBlock();
-			while (currentBlock > 0) {
-				_freeSpaceManager.freeBlock(currentBlock);
-				DBuffer block = _cache.getBlock(currentBlock);
-				currentBlock = getHeader(block)[1];
-				_cache.releaseBlock(block);
-			}
-			
-			NodeLocation location = _fileAssistant.getNodeLocation(dFID);
-			
-			file.setValid(false);
-			
-			updateINode(location, file);
-			_freeSpaceManager.freeINode(location);
-			_fileAssistant.removeFile(dFID);
-		}
-		System.out.println("File: " + dFID.getDFileID() + "destroyed!");
-	}
-
-
-	@Override
-	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
-		synchronized (dFID) {
-			System.out.println("reading file: " +dFID.getDFileID() +"...");
-			INode file;
-			try {
-				file = _fileAssistant.getINode(dFID, _cache);
-			} catch (IOException e) {
-				e.printStackTrace();
-				return -1;
-			}
-			int currentBlock = file.getHeadBlock();
-
-			int currentCount = count;
-
-			int currentOffset = startOffset;
-			while (currentCount > 0) {
-				DBuffer block = _cache.getBlock(currentBlock);
-				int readCount = Math.min(currentCount, Constants.BLOCK_SIZE
-						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE/8);
-
-				block.read(buffer, currentOffset, readCount);
-
-				currentBlock = getHeader(block)[1];
-
-				if (currentBlock < 0) {
-					// BAD!!!
-				}
-				currentOffset += readCount;
-				currentCount -= readCount;
-				_cache.releaseBlock(block);
-				System.out.println("Done reading: " +dFID.getDFileID() +"!");
-
-			}
-
-		}
-
-		return 0;
 	}
 
 	/**
@@ -261,50 +355,46 @@ public class SimpleDFS extends DFS {
 	private int[] getHeader(DBuffer currentBlock) {
 		byte[] headerBuffer = new byte[Constants.BLOCK_SIZE];
 		currentBlock.read(headerBuffer, 0, Constants.BLOCK_SIZE);
-		
-		byte[] metadata = new byte[Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/Byte.SIZE];
-		
-		for(int i = 0; i < metadata.length; ++i){
-			metadata[i] = headerBuffer[headerBuffer.length-1-i];
+
+		byte[] metadata = new byte[Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+				/ Byte.SIZE];
+
+		for (int i = 0; i < metadata.length; ++i) {
+			metadata[i] = headerBuffer[headerBuffer.length - 1 - i];
 		}
 		return readBytes(metadata);
 	}
 
-	private void setHeader(DBuffer block, int[] header){
-		byte[] data = new byte[Constants.BLOCK_SIZE];
+	private void writeHeader(DBuffer block, int[] header) {
 		byte[] headerData = getByteArray(header);
-		for(int i = 0; i < headerData.length; ++i){
-			int offset = Constants.BLOCK_SIZE-Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/8-1;
-			data[offset + i] = headerData[i];
-		}
-		
+		block.write(headerData, 0, headerData.length);
+
 	}
-	
-	private int[] readBytes(byte[] data){
-		
-		int length = data.length/4;
-		
-		if(data.length% 4 != 0){
-			length -= data.length%4;
+
+	private int[] readBytes(byte[] data) {
+
+		int length = data.length / 4;
+
+		if (data.length % 4 != 0) {
+			length -= data.length % 4;
 		}
 		int[] res = new int[length];
-		
+
 		int offset = 0;
-		for(int i =0; i < res.length; ++i){
-			
+		for (int i = 0; i < res.length; ++i) {
+
 			byte[] intData = new byte[4];
-			for(int j = offset; j < 4; ++j){
+			for (int j = offset; j < 4; ++j) {
 				intData[j] = data[j];
 			}
-			
+
 			res[i] = ByteBuffer.wrap(intData).getInt();
-			offset +=4;
-			
+			offset += 4;
+
 		}
 		return res;
 	}
-	
-	
+
 	private byte[] getByteArray(int[] header) {
 		byte[] res = new byte[header.length * Integer.SIZE / Byte.SIZE];
 
@@ -318,87 +408,6 @@ public class SimpleDFS extends DFS {
 			}
 		}
 		return res;
-	}
-
-	@Override
-	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
-		synchronized (dFID) {
-			System.out.println("Writing file: " +dFID.getDFileID() +"...");
-
-			
-			INode file;
-			try {
-				file = _fileAssistant.getINode(dFID, _cache);
-			} catch (IOException e) {
-				e.printStackTrace();
-				return -1;
-			}
-			
-			int prevBlock = -1;
-			int currentBlock = file.getHeadBlock();
-			int currentOffset = 0;
-			int currentCount = count;
-			
-			while(currentCount > 0){
-				if(currentBlock < 0){
-					
-					if(prevBlock < 0){
-						// special case! TODO: take care of this even though we imply it is taken care of elsewhere in the code
-					}
-					
-					currentBlock =_freeSpaceManager.allocateBlock();
-					DBuffer last = _cache.getBlock(prevBlock);
-					int[] prevHeader = getHeader(last);
-					prevHeader[1] = currentBlock;
-					prevHeader[0] = Constants.BLOCK_SIZE-Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/Byte.SIZE;
-					setHeader(last, prevHeader);
-					_cache.releaseBlock(last);
-				}
-				
-				DBuffer current = _cache.getBlock(currentBlock);
-				int writeLen = Math.min(currentCount, Constants.BLOCK_SIZE-Constants.BLOCK_HEADER_LENGTH*Integer.SIZE/Byte.SIZE);
-				current.write(buffer, currentOffset, writeLen);
-				
-				currentCount -= writeLen;
-				currentOffset += writeLen;
-				file.setSize(file.getFileSize() + writeLen);
-				
-				prevBlock = currentBlock;
-				int[] header = getHeader(current);
-				header[0] = writeLen;
-				currentBlock = header[1];
-				setHeader(current, header);
-				_cache.releaseBlock(current);
-			}
-			updateINode(_fileAssistant.getNodeLocation(dFID), file);
-			System.out.println("File Written: " +dFID.getDFileID() +"!");
-
-		}
-		return 0;
-	}
-
-	@Override
-	public int sizeDFile(DFileID dFID) {
-		// TODO: return -1 if not valid file
-		synchronized (dFID) {
-			int fileSize = -1;
-			try {
-				fileSize = _fileAssistant.getINode(dFID, _cache).getFileSize();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			return fileSize;
-		}
-	}
-
-	@Override
-	public List<DFileID> listAllDFiles() {
-		return _fileAssistant.getFiles();
-	}
-
-	@Override
-	public void sync() {
-		_cache.sync();
 	}
 
 }
