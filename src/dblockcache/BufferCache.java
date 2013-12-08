@@ -33,14 +33,14 @@ public class BufferCache extends DBufferCache {
 		buffer.waitValid();
 		while(_heldlist.contains(buffer)){
 			try {
-				System.out.println("ERROR: BLOCK IS HELD");
+				//System.out.println("ERROR: BLOCK IS HELD");
 				wait();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 		_heldlist.add(buffer);
-		System.out.println("GETTING BLOCK " + blockID);
+		//System.out.println("GETTING BLOCK " + blockID);
 		return buffer;
 	}
 	
@@ -119,7 +119,7 @@ public class BufferCache extends DBufferCache {
 		
 		FetchWorker worker = new FetchWorker(buf);
 		Thread t = new Thread(worker);
-		System.out.println("Starting Fetch Thread");
+		//System.out.println("Starting Fetch Thread");
 		t.start();
 	}
 
@@ -137,7 +137,7 @@ public class BufferCache extends DBufferCache {
 	private void startPushThread(DBuffer buf) {
 		PushWorker worker = new PushWorker(buf);
 		Thread t = new Thread(worker);
-		System.out.println("Starting Push Thread");
+		//System.out.println("Starting Push Thread");
 		t.start();
 	}
 
