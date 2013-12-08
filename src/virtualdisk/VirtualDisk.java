@@ -1,4 +1,5 @@
 package virtualdisk;
+
 /*
  * VirtualDisk.java
  *
@@ -23,8 +24,8 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	/**
 	 * VirtualDisk Constructors
 	 */
-	public VirtualDisk(String volName, boolean format) throws FileNotFoundException,
-			IOException {
+	public VirtualDisk(String volName, boolean format)
+			throws FileNotFoundException, IOException {
 
 		_volName = volName;
 		_maxVolSize = Constants.BLOCK_SIZE * Constants.NUM_OF_BLOCKS;
@@ -42,48 +43,48 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		 * set the length.
 		 */
 		_file.setLength(Constants.BLOCK_SIZE * Constants.NUM_OF_BLOCKS);
-		if(format) {
+		if (format) {
 			formatStore();
 		}
 		/* Other methods as required */
 	}
-	
+
 	public VirtualDisk(boolean format) throws FileNotFoundException,
-	IOException {
+			IOException {
 		this(Constants.vdiskName, format);
 	}
-	
-	public VirtualDisk() throws FileNotFoundException,
-	IOException {
+
+	public VirtualDisk() throws FileNotFoundException, IOException {
 		this(Constants.vdiskName, false);
 	}
 
 	/**
-	 * Start an asynchronous request to the underlying device/disk/volume. 
-	 * -- buf is an DBuffer object that needs to be read/write from/to the volume.	
-	 * -- operation is either READ or WRITE  
+	 * Start an asynchronous request to the underlying device/disk/volume. --
+	 * buf is an DBuffer object that needs to be read/write from/to the volume.
+	 * -- operation is either READ or WRITE
 	 */
-	public abstract void startRequest(DBuffer buf, DiskOperationType operation) throws IllegalArgumentException,
-			IOException;
-	
+	public abstract void startRequest(DBuffer buf, DiskOperationType operation)
+			throws IllegalArgumentException, IOException;
+
 	/**
 	 * Clear the contents of the disk by writing 0s to it
 	 */
 	private void formatStore() {
-		System.out.println("Formatting...");
-		byte b[] = new byte[Constants.BLOCK_SIZE];
-		setBuffer((byte) 0, b, Constants.BLOCK_SIZE);
-		for (int i = 0; i < Constants.NUM_OF_BLOCKS; i++) {
-			try {
-				int seekLen = i * Constants.BLOCK_SIZE;
-				_file.seek(seekLen);
-				_file.write(b, 0, Constants.BLOCK_SIZE);
-			} catch (Exception e) {
-				System.out.println("Error in format: WRITE operation failed at the device block " + i);
+		synchronized (_file) {
+			byte b[] = new byte[Constants.BLOCK_SIZE];
+			setBuffer((byte) 0, b, Constants.BLOCK_SIZE);
+			for (int i = 0; i < Constants.NUM_OF_BLOCKS; i++) {
+				try {
+					int seekLen = i * Constants.BLOCK_SIZE;
+					_file.seek(seekLen);
+					_file.write(b, 0, Constants.BLOCK_SIZE);
+				} catch (Exception e) {
+					System.out
+							.println("Error in format: WRITE operation failed at the device block "
+									+ i);
+				}
 			}
 		}
-		System.out.println("Formatting complete!");
-
 	}
 
 	/**
@@ -99,23 +100,31 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	 * Reads the buffer associated with DBuffer to the underlying
 	 * device/disk/volume
 	 */
-	protected int readBlock(DBuffer buf) throws IOException { //changed private to protected
-		int seekLen = buf.getBlockID() * Constants.BLOCK_SIZE;
-		/* Boundary check */
-		if (_maxVolSize < seekLen + Constants.BLOCK_SIZE) {
-			return -1;
+	protected int readBlock(DBuffer buf) throws IOException { // changed private
+																// to protected
+		synchronized (_file) {
+			int seekLen = buf.getBlockID() * Constants.BLOCK_SIZE;
+			/* Boundary check */
+			if (_maxVolSize < seekLen + Constants.BLOCK_SIZE) {
+				return -1;
+			}
+			_file.seek(seekLen);
+			return _file.read(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
 		}
-		_file.seek(seekLen);
-		return _file.read(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
+
 	}
 
 	/**
 	 * Writes the buffer associated with DBuffer to the underlying
 	 * device/disk/volume
 	 */
-	protected void writeBlock(DBuffer buf) throws IOException { //changed to protected
-		int seekLen = buf.getBlockID() * Constants.BLOCK_SIZE;
-		_file.seek(seekLen);
-		_file.write(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
+	protected void writeBlock(DBuffer buf) throws IOException { // changed to
+																// protected
+		synchronized (_file) {
+
+			int seekLen = buf.getBlockID() * Constants.BLOCK_SIZE;
+			_file.seek(seekLen);
+			_file.write(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
+		}
 	}
 }
