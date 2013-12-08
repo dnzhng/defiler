@@ -1,7 +1,9 @@
 package test;
 
-import common.DFileID;
+import java.util.Random;
 
+import common.Constants;
+import common.DFileID;
 import dfs.DFS;
 
 public class TestClient implements Runnable {
@@ -13,14 +15,26 @@ public class TestClient implements Runnable {
 	private DFileID _ID;
 
 	private boolean exit = false;
+	private int _name;
 	
-	public TestClient(DFS dfs, String writeText) {
+	public TestClient(DFS dfs, int clientName, int dataAmount) {
 		_DFS = dfs;
-		_writeBuffer = writeText.getBytes();
-
+		_writeBuffer = getLotsOfBytes(dataAmount);//writeText.getBytes();
+		_name = clientName;
 	}
 	
 	//comment for errorz lolz
+
+	private byte[] getLotsOfBytes(int dataAmount) {
+		Random r = new Random();
+		byte[] data = new byte[dataAmount];
+		
+		r.nextBytes(data);
+		
+		
+		
+		return data;
+	}
 
 	public void createFile(){
 		_ID = _DFS.createDFile();
@@ -45,7 +59,10 @@ public class TestClient implements Runnable {
 		_DFS.read(_ID, buffer, 0, _writeBuffer.length);
 
 		for (int i = 0; i < buffer.length; ++i) {
-			assert (buffer[i] == _writeBuffer[i]);
+			if (buffer[i] != _writeBuffer[i]){
+				System.err.println("FAILURE READING!!!");
+				break;
+			}
 		}
 		System.out.println("read file " + _ID.getDFileID());
 	}

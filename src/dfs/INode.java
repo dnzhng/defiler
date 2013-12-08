@@ -52,7 +52,7 @@ public class INode {
 		offset += Integer.SIZE / 8;
 		_headBlock = readInt(data, offset);
 
-		if (valid == 0) {
+		if (valid == -1) {
 			_valid = true;
 		} else {
 			_valid = false;
@@ -98,9 +98,9 @@ public class INode {
 
 		byte[] id = toByteArray(_ID.getDFileID());
 
-		int v = -1;
+		int v = 0;
 		if (_valid) {
-			v = 0;
+			v = -1;
 		}
 		byte[] valid = toByteArray(v);
 		byte[] size = toByteArray(_size);

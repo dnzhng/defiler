@@ -16,6 +16,7 @@ public class Buffer extends DBuffer {
 	private IVirtualDisk _virtualdisk;
 
 	public Buffer(int blockID, IVirtualDisk virtualdisk) {
+		assert(blockID >=0);
 		_blockID = blockID;
 		_virtualdisk = virtualdisk;
 		_buffer = new byte[Constants.BLOCK_SIZE];

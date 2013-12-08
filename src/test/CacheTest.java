@@ -6,7 +6,6 @@ import java.io.IOException;
 import dblockcache.BufferCache;
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
-
 import virtualdisk.IVirtualDisk;
 import virtualdisk.VD;
 
@@ -16,7 +15,7 @@ public class CacheTest {
 	
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException{
-		IVirtualDisk vd = new VD("scot",false);
+		IVirtualDisk vd = new VD("scot",true);
 		
 		DBufferCache cache = new BufferCache(1, vd);
 		DBuffer x = cache.getBlock(4);
@@ -36,6 +35,12 @@ public class CacheTest {
 		cache.releaseBlock(x);
 		
 		cache.sync();
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 
 		

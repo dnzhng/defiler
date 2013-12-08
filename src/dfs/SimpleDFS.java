@@ -29,12 +29,18 @@ public class SimpleDFS extends DFS {
 			throws FileNotFoundException, IOException {
 		IVirtualDisk vd = new VD(filename, format);
 		initDataStructures(vd, size);
+		if(!format){
+			init();
+		}
 	}
 
 	public SimpleDFS(int size, boolean format) throws FileNotFoundException,
 			IOException {
 		IVirtualDisk vd = new VD(format);
 		initDataStructures(vd, size);
+		if(!format){
+			init();
+		}
 	}
 
 	public SimpleDFS(int size) throws FileNotFoundException, IOException {
@@ -44,7 +50,10 @@ public class SimpleDFS extends DFS {
 
 	@Override
 	public void init() {
-		System.out.println("Initiating DFS...");
+		
+
+		
+		
 		int inodeBlocks = Constants.MAX_DFILES * Constants.INODE_SIZE
 				/ Constants.BLOCK_SIZE;
 
@@ -52,7 +61,6 @@ public class SimpleDFS extends DFS {
 				+ inodeBlocks; ++i) {
 			mapFilesInBlock(i);
 		}
-		System.out.println("Done Initiating DFS!");
 	}
 
 	@Override
