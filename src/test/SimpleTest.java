@@ -67,28 +67,36 @@ public class SimpleTest {
 			}
 		}
 		dfs.sync();
+		
+		DFileID id = dfs.listAllDFiles().get(0);
+		
+		System.out.println(id);
+		dfs.destroyDFile(id);
+		dfs.sync();
+		
+		
 	}
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		int numClients = 3;
+		int numClients = 1;
 		int numFiles = numClients;
 		
 		
 		
-		makeFiles(numClients, Constants.BLOCK_SIZE*2);
+		makeFiles(numClients, Constants.BLOCK_SIZE);
 		
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			Thread.sleep(2000);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		
 		
-		loadFilesAndVerify(numFiles);
+		//loadFilesAndVerify(numFiles);
 		
 	}
 
@@ -112,10 +120,12 @@ public class SimpleTest {
 		
 		List<TestClient> clients = new ArrayList<TestClient>();
 
-		for (int i = 0; i < numFiles; ++i) {
+		for (int i = 0; i < files.size(); ++i) {
+			clients.add(new TestClient(dfs, i, Constants.BLOCK_SIZE*2 ,files.get(i)) );
 			clients.add(new TestClient(dfs, i, Constants.BLOCK_SIZE*2 ,files.get(i)) );
 		}
-
+		
+		
 		List<Thread> threads = new ArrayList<Thread>();
 
 		for (TestClient c : clients) {
