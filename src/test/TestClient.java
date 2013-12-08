@@ -31,10 +31,12 @@ public class TestClient implements Runnable {
 			}
 		}
 		assert(x);
+		System.out.println("Created file: " + _ID.getDFileID());
 	}
 
 	public void writeFile(){
 		_DFS.write(_ID, _writeBuffer, 0, _writeBuffer.length);
+		System.out.println("Wrote file: " + _ID.getDFileID());
 	}
 	
 	public void readFile(){
@@ -45,6 +47,7 @@ public class TestClient implements Runnable {
 		for (int i = 0; i < buffer.length; ++i) {
 			assert (buffer[i] == _writeBuffer[i]);
 		}
+		System.out.println("read file " + _ID.getDFileID());
 	}
 	
 	public void destroyFile(){
@@ -57,6 +60,7 @@ public class TestClient implements Runnable {
 			System.out.println("successfully made a file, wrote it, read it back, and deleted it");
 		}
 		exit = true;
+		System.out.println("Deleted file: " + _ID.getDFileID());
 	}
 	
 	

@@ -56,7 +56,7 @@ public class SimpleDFS extends DFS {
 	}
 
 	@Override
-	public DFileID createDFile() {
+	public synchronized DFileID createDFile() {
 		DFileID newFileID = _fileAssistant.getNextFileID();
 		NodeLocation inodeLocation = _freeSpaceManager.allocatedINode();
 		int dataHead = _freeSpaceManager.allocateBlock();
@@ -76,6 +76,7 @@ public class SimpleDFS extends DFS {
 			NodeLocation inodeLocation = _fileAssistant.getNodeLocation(dFID);
 			DBuffer inodeBuffer = _cache.getBlock(inodeLocation
 					.getBlockNumber());
+			_cache.releaseBlock(inodeBuffer);
 			try {
 				file = _fileAssistant.getINode(dFID, inodeBuffer);
 			} catch (IOException e) {
@@ -87,8 +88,7 @@ public class SimpleDFS extends DFS {
 			file.setValid(false);
 			updateINode(inodeLocation, file);
 			_freeSpaceManager.freeINode(inodeLocation);
-			_fileAssistant.removeFile(dFID);
-			_cache.releaseBlock(inodeBuffer);
+			_fileAssistant.removeFile(dFID);	
 		}
 	}
 
@@ -142,17 +142,19 @@ public class SimpleDFS extends DFS {
 	}
 
 	private int readToBuffer(DBuffer block, byte[] buffer, int offset, int count) {
-		byte[] blockData = new byte[count + Constants.BLOCK_HEADER_LENGTH];
-		int retVal = block.read(blockData, 0, count + Constants.BLOCK_HEADER_LENGTH);
-		retVal -= Constants.BLOCK_HEADER_LENGTH;
+		int headerLength = Constants.BLOCK_HEADER_LENGTH * Integer.SIZE/Byte.SIZE;
+		byte[] blockData = new byte[count + headerLength];
+		int retVal = block.read(blockData, 0, count + headerLength);
+		retVal -= headerLength;
 		for (int i = 0; i < retVal; ++i) {
-			buffer[i + offset] = blockData[i + Constants.BLOCK_HEADER_LENGTH];
+			buffer[i + offset] = blockData[i + headerLength];
 		}
 		return retVal;
 	}
 
 	@Override
 	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
+		
 		synchronized (dFID) {
 			NodeLocation inodeLocation = _fileAssistant.getNodeLocation(dFID);
 			DBuffer inodeBuffer = _cache.getBlock(inodeLocation
@@ -169,7 +171,7 @@ public class SimpleDFS extends DFS {
 			
 			int prevBlock = -1;
 			int currentBlock = file.getHeadBlock();
-			int currentOffset = 0;
+			int currentOffset = 0;// should be else
 			int currentCount = count;
 
 			while (currentCount > 0) {
@@ -217,16 +219,17 @@ public class SimpleDFS extends DFS {
 	}
 	
 	private int writeToBuffer(DBuffer block, byte[] buffer, int offset, int count){
-		int retval = 0;
-		byte[] blockData = new byte[count + Constants.BLOCK_HEADER_LENGTH];
-		int retVal = block.read(blockData, 0, Constants.BLOCK_HEADER_LENGTH);
-		retVal -= Constants.BLOCK_HEADER_LENGTH;
+		int headerLength = Constants.BLOCK_HEADER_LENGTH * Integer.SIZE/Byte.SIZE;
+		int retVal = 0;
+		byte[] blockData = new byte[count + headerLength];
+		retVal = block.read(blockData, 0, headerLength + count);
+		retVal -= headerLength;
 		for (int i = 0; i < retVal; ++i) {
-			 blockData[i + Constants.BLOCK_HEADER_LENGTH] = buffer[i + offset];
+			 blockData[i + headerLength] = buffer[i + offset];
 		}
 		
 		block.write(blockData, 0, blockData.length);
-		return retval;
+		return retVal;
 	}
 	
 	
@@ -353,16 +356,14 @@ public class SimpleDFS extends DFS {
 	 * @return
 	 */
 	private int[] getHeader(DBuffer currentBlock) {
-		byte[] headerBuffer = new byte[Constants.BLOCK_SIZE];
-		currentBlock.read(headerBuffer, 0, Constants.BLOCK_SIZE);
-
-		byte[] metadata = new byte[Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
-				/ Byte.SIZE];
-
-		for (int i = 0; i < metadata.length; ++i) {
-			metadata[i] = headerBuffer[headerBuffer.length - 1 - i];
-		}
-		return readBytes(metadata);
+		
+		int count = Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+				/ Byte.SIZE;
+		
+		byte[] headerBuffer = new byte[count];
+		currentBlock.read(headerBuffer, 0, Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+				/ Byte.SIZE);
+		return readBytes(headerBuffer);
 	}
 
 	private void writeHeader(DBuffer block, int[] header) {
@@ -384,12 +385,12 @@ public class SimpleDFS extends DFS {
 		for (int i = 0; i < res.length; ++i) {
 
 			byte[] intData = new byte[4];
-			for (int j = offset; j < 4; ++j) {
-				intData[j] = data[j];
+			for (int j = 0; j < Integer.SIZE/Byte.SIZE; ++j) {
+				intData[j] = data[j + offset];
 			}
 
 			res[i] = ByteBuffer.wrap(intData).getInt();
-			offset += 4;
+			offset += Integer.SIZE/Byte.SIZE;
 
 		}
 		return res;
