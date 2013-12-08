@@ -12,7 +12,8 @@ import virtualdisk.VD;
 
 
 public class CacheTest2 {
-	public static void main(String args[]) throws FileNotFoundException, IOException {
+	
+	public static void multiblocks() throws FileNotFoundException, IOException {
 		IVirtualDisk vd = new VD("file1", true);
 		
 		DBufferCache cache = new BufferCache(3, vd);
@@ -44,27 +45,38 @@ public class CacheTest2 {
 
 		cache.sync();
 		
-//		cache = new BufferCache(3, vd);
-//		
-//		byte[] read1 = new byte[6];
-//		
-//		DBuffer x = cache.getBlock(1);
-//		DBuffer y = cache.getBlock(2);
-//		DBuffer z = cache.getBlock(3);
-//		
-//		x.read(read1, 0, 2);
-//		y.read(read1, 2, 2);
-//		z.read(read1, 4, 2);
-//		
-//		cache.releaseBlock(x);
-//		cache.releaseBlock(y);
-//		cache.releaseBlock(z);
-//			
-//		
-//		for(int i=0; i < read1.length; ++i) {
-//			System.out.print(read1[i] + " ");
-//		}
+		cache = new BufferCache(3, vd);
 		
+		byte[] read1 = new byte[6];
+		
+		DBuffer x = cache.getBlock(1);
+		DBuffer y = cache.getBlock(2);
+		DBuffer z = cache.getBlock(3);
+		
+		x.read(read1, 0, 2);
+		y.read(read1, 2, 2);
+		z.read(read1, 4, 2);
+		
+		cache.releaseBlock(x);
+		cache.releaseBlock(y);
+		cache.releaseBlock(z);
+			
+		
+		for(int i=0; i < read1.length; ++i) {
+			System.out.print(read1[i] + " ");
+		}
+	}
+	
+	public static void twothreadsoneblock() throws FileNotFoundException, IOException {
+		//sorry for gross name. 
+		IVirtualDisk vd = new VD("file1", true);
+		
+		
+	}
+	
+	public static void main(String args[]) throws FileNotFoundException, IOException {
+		
+		multiblocks();
 		
 		
 		

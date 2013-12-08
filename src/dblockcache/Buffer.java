@@ -13,7 +13,7 @@ public class Buffer extends DBuffer {
 	private boolean _isBusy; // Check if the block is busy doing I/O stuff
 	private boolean _isValid; // Check if the block has contents in it
 	private byte[] _buffer; // The actual buffer
-	private IVirtualDisk _virtualdisk;
+	private IVirtualDisk _virtualdisk; //Virtual disk which it has access to. 
 
 	public Buffer(int blockID, IVirtualDisk virtualdisk) {
 		assert(blockID >=0);
