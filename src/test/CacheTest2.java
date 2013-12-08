@@ -2,6 +2,7 @@ package test;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.*;
 
 import dblockcache.BufferCache;
 import dblockcache.DBuffer;
@@ -69,14 +70,34 @@ public class CacheTest2 {
 	
 	public static void twothreadsoneblock() throws FileNotFoundException, IOException {
 		//sorry for gross name. 
+		
 		IVirtualDisk vd = new VD("file1", true);
+		DBufferCache cache = new BufferCache(1, vd);
+		
+		System.out.println("Test 1 retrieving block");
+		DBuffer test1 = cache.getBlock(1);
+		System.out.println("Test 2 retrieving block");
+		DBuffer test2 = cache.getBlock(1);
+		cache.releaseBlock(test1);
+		
 		
 		
 	}
 	
 	public static void main(String args[]) throws FileNotFoundException, IOException {
+		@SuppressWarnings("resource")
+		Scanner userInputScanner = new Scanner(System.in);
+		System.out.println("Which test would you like to run?\n" +
+				"1. MultiBlocks\n" +
+				"2. Two Threads One Block");
+		int choice = userInputScanner.nextInt();
+		if (choice == 1) 
+			multiblocks();
+		else if (choice == 2)
+			twothreadsoneblock();
+		else
+			System.out.println("This test does not exist");
 		
-		multiblocks();
 		
 		
 		
