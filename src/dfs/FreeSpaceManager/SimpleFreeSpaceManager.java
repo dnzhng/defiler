@@ -75,7 +75,7 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	private NodeLocation locationOf(int i) {
 		int offset = Constants.INODE_SIZE * i % Constants.BLOCK_SIZE;
 		int blockNum = Constants.INODE_SIZE * i / Constants.BLOCK_SIZE
-				+ Constants.INODE_REGION_START;
+				+ Constants.VDS_METDATA_BLOCK_LENGTH;
 		return new NodeLocation(blockNum, offset);
 	}
 
@@ -95,7 +95,7 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 	}
 
 	private int getIndex(NodeLocation location) {
-		return (location.getBlockNumber() - Constants.INODE_REGION_START)
+		return (location.getBlockNumber() - Constants.VDS_METDATA_BLOCK_LENGTH)
 				* Constants.BLOCK_SIZE / Constants.INODE_SIZE;
 	}
 
@@ -117,7 +117,7 @@ public class SimpleFreeSpaceManager implements FreeSpaceManager {
 		byte[] headerBuffer = new byte[Constants.BLOCK_SIZE];
 		currentBlock.read(headerBuffer, 0, Constants.BLOCK_SIZE);
 
-		byte[] metadata = new byte[Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+		byte[] metadata = new byte[Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE
 				/ Byte.SIZE];
 
 		for (int i = 0; i < metadata.length; ++i) {

@@ -25,27 +25,27 @@ public class SimpleDFS extends DFS {
 	private FileAssistant _fileAssistant;
 	private FreeSpaceManager _freeSpaceManager;
 
-	public SimpleDFS(int size, String filename, boolean format)
+	public SimpleDFS(String filename, boolean format)
 			throws FileNotFoundException, IOException {
 		IVirtualDisk vd = new VD(filename, format);
-		initDataStructures(vd, size);
+		initDataStructures(vd);
 		if(!format){
 			init();
 		}
 	}
 
-	public SimpleDFS(int size, boolean format) throws FileNotFoundException,
+	public SimpleDFS(boolean format) throws FileNotFoundException,
 			IOException {
 		IVirtualDisk vd = new VD(format);
-		initDataStructures(vd, size);
+		initDataStructures(vd);
 		if(!format){
 			init();
 		}
 	}
 
-	public SimpleDFS(int size) throws FileNotFoundException, IOException {
+	public SimpleDFS() throws FileNotFoundException, IOException {
 		IVirtualDisk vd = new VD();
-		initDataStructures(vd, size);
+		initDataStructures(vd);
 	}
 
 	@Override
@@ -53,7 +53,7 @@ public class SimpleDFS extends DFS {
 		int inodeBlocks = Constants.MAX_DFILES * Constants.INODE_SIZE
 				/ Constants.BLOCK_SIZE;
 
-		for (int i = Constants.INODE_REGION_START; i < Constants.INODE_REGION_START
+		for (int i = Constants.VDS_METDATA_BLOCK_LENGTH; i < Constants.VDS_METDATA_BLOCK_LENGTH
 				+ inodeBlocks; ++i) {
 			mapFilesInBlock(i);
 		}
@@ -62,6 +62,13 @@ public class SimpleDFS extends DFS {
 	@Override
 	public synchronized DFileID createDFile() {
 		DFileID newFileID = _fileAssistant.getNextFileID();
+		
+		if(newFileID == null){
+			System.err.println("Unable to create file.");
+			return null;
+		}
+		
+		
 		NodeLocation inodeLocation = _freeSpaceManager.allocatedINode();
 		int dataHead = _freeSpaceManager.allocateBlock();
 		initEmptyBlock(dataHead);
@@ -122,7 +129,7 @@ public class SimpleDFS extends DFS {
 			while (currentCount > 0) {
 				DBuffer block = _cache.getBlock(currentBlock);
 				int readCount = Math.min(currentCount, Constants.BLOCK_SIZE
-						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+						- Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE
 						/ Byte.SIZE);
 
 				int bytesRead = readToBuffer(block, buffer, currentOffset,
@@ -144,7 +151,7 @@ public class SimpleDFS extends DFS {
 	}
 
 	private int readToBuffer(DBuffer block, byte[] buffer, int offset, int count) {
-		int headerLength = Constants.BLOCK_HEADER_LENGTH * Integer.SIZE/Byte.SIZE;
+		int headerLength = Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE/Byte.SIZE;
 		byte[] blockData = new byte[count + headerLength];
 		int retVal = block.read(blockData, 0, count + headerLength);
 		retVal -= headerLength;
@@ -190,7 +197,7 @@ public class SimpleDFS extends DFS {
 					int[] prevHeader = getHeader(last);
 					prevHeader[1] = currentBlock;
 					prevHeader[0] = Constants.BLOCK_SIZE
-							- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+							- Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE
 							/ Byte.SIZE;
 					writeHeader(last, prevHeader);
 					_cache.releaseBlock(last);
@@ -198,7 +205,7 @@ public class SimpleDFS extends DFS {
 
 				DBuffer current = _cache.getBlock(currentBlock);
 				int writeLen = Math.min(currentCount, Constants.BLOCK_SIZE
-						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+						- Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE
 						/ Byte.SIZE);
 				
 				int writtenCount = writeToBuffer(current, buffer, currentOffset, writeLen);
@@ -222,7 +229,7 @@ public class SimpleDFS extends DFS {
 	}
 	
 	private int writeToBuffer(DBuffer block, byte[] buffer, int offset, int count){
-		int headerLength = Constants.BLOCK_HEADER_LENGTH * Integer.SIZE/Byte.SIZE;
+		int headerLength = Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE/Byte.SIZE;
 		int retVal = 0;
 		byte[] blockData = new byte[count + headerLength];
 		retVal = block.read(blockData, 0, headerLength + count);
@@ -265,10 +272,10 @@ public class SimpleDFS extends DFS {
 		_cache.sync();
 	}
 
-	private void initDataStructures(IVirtualDisk vd, int size) {
+	private void initDataStructures(IVirtualDisk vd) {
 		_cache = new BufferCache(Constants.NUM_OF_BLOCKS, vd);
 		_fileAssistant = new SimpleFileAssistant();
-		_freeSpaceManager = new SimpleFreeSpaceManager(size);
+		_freeSpaceManager = new SimpleFreeSpaceManager(Constants.NUM_OF_BLOCKS);
 	}
 
 	private void mapFilesInBlock(int blockID) {
@@ -296,8 +303,7 @@ public class SimpleDFS extends DFS {
 			if (currentBlock.isValid()) {
 				addFile(currentBlock, new NodeLocation(blockID, offset));
 			}
-			else
-				System.out.println("Hey");
+			
 			offset += Constants.INODE_SIZE;
 		}
 		_cache.releaseBlock(block);
@@ -306,6 +312,11 @@ public class SimpleDFS extends DFS {
 	private void addFile(INode file, NodeLocation location) {
 		DFileID id = file.getDFileID();
 
+		if(id == null){
+			System.err.println("File Point null.");
+			return;
+		}
+		
 		_fileAssistant.addFile(id, location);
 		_freeSpaceManager.allocateINode(location);
 
@@ -362,11 +373,11 @@ public class SimpleDFS extends DFS {
 	 */
 	private int[] getHeader(DBuffer currentBlock) {
 		
-		int count = Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+		int count = Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE
 				/ Byte.SIZE;
 		
 		byte[] headerBuffer = new byte[count];
-		currentBlock.read(headerBuffer, 0, Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
+		currentBlock.read(headerBuffer, 0, Constants.BLOCK_INT_HEADER_LENGTH * Integer.SIZE
 				/ Byte.SIZE);
 		return readBytes(headerBuffer);
 	}
