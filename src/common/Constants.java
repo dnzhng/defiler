@@ -13,7 +13,7 @@ public class Constants {
 	 * should be free of any hard-coded constants.  
 	 */
 
-	public static final int NUM_OF_BLOCKS = 8; // 2^18
+	public static final int NUM_OF_BLOCKS = 16; // 2^18
 	public static final int BLOCK_SIZE = 128; // 1kB
 	
 	
@@ -28,7 +28,7 @@ public class Constants {
 	
 	
 	public static final int NUM_OF_CACHE_BLOCKS = 2; // 2^16
-	public static final int MAX_FILE_SIZE = BLOCK_SIZE*1; // Constraint on the max file size
+	public static final int MAX_FILE_SIZE = BLOCK_SIZE*2; // Constraint on the max file size
 
 	public static final int MAX_DFILES = 4; // For recylcing DFileIDs
 		

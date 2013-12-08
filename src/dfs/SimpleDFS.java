@@ -129,7 +129,7 @@ public class SimpleDFS extends DFS {
 						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
 						/ Byte.SIZE);
 
-				block.read(buffer, currentOffset, readCount);
+				//block.read(buffer, currentOffset, readCount);
 
 				int bytesRead = readToBuffer(block, buffer, currentOffset,
 						readCount);
@@ -191,6 +191,7 @@ public class SimpleDFS extends DFS {
 					}
 
 					currentBlock = _freeSpaceManager.allocateBlock();
+					initEmptyBlock(currentBlock);
 					DBuffer last = _cache.getBlock(prevBlock);
 					int[] prevHeader = getHeader(last);
 					prevHeader[1] = currentBlock;

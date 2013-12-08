@@ -50,7 +50,7 @@ public class SimpleTest {
 		for (int i = 0; i < threads.size(); ++i) {
 			clients.get(i).writeFile();
 			try {
-				threads.get(i).sleep(r.nextInt(20));
+				threads.get(i).sleep(r.nextInt(200));
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -78,7 +78,7 @@ public class SimpleTest {
 		
 		
 		
-		makeFiles(numClients, 10);
+		makeFiles(numClients, Constants.BLOCK_SIZE*2);
 		
 		try {
 			Thread.sleep(1000);
@@ -101,7 +101,10 @@ public class SimpleTest {
 			return;
 		}
 		
+		List<DFileID> files = dfs.listAllDFiles();
+		
 		System.out.println(dfs.listAllDFiles());
+		
 		
 	}
 }
