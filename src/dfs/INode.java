@@ -23,7 +23,6 @@ public class INode {
 	private int _size;
 
 	public INode(byte[] inodeData) throws IOException {
-		assert (inodeData.length == Constants.INODE_SIZE);
 
 		int offset = 0;
 		_ID = new DFileID(readInt(inodeData, offset));

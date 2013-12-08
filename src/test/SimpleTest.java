@@ -81,7 +81,7 @@ public class SimpleTest {
 		makeFiles(numClients, Constants.BLOCK_SIZE*2);
 		
 		try {
-			Thread.sleep(1000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -92,7 +92,7 @@ public class SimpleTest {
 		
 	}
 
-	private static void loadFilesAndVerify(int files) {
+	private static void loadFilesAndVerify(int numFiles) {
 		DFS dfs;
 		try {
 			dfs = new SimpleDFS(Constants.NUM_OF_BLOCKS, false);
@@ -100,11 +100,33 @@ public class SimpleTest {
 			e1.printStackTrace();
 			return;
 		}
-		
-		List<DFileID> files = dfs.listAllDFiles();
-		
 		System.out.println(dfs.listAllDFiles());
+		List<DFileID> files = dfs.listAllDFiles();
+		DFileID id = files.get(0);
+
+		System.out.println(dfs.sizeDFile(id));
+
 		
+		
+		
+		
+		List<TestClient> clients = new ArrayList<TestClient>();
+
+		for (int i = 0; i < numFiles; ++i) {
+			clients.add(new TestClient(dfs, i, Constants.BLOCK_SIZE*2 ,files.get(i)) );
+		}
+
+		List<Thread> threads = new ArrayList<Thread>();
+
+		for (TestClient c : clients) {
+			Thread t = new Thread(c);
+			threads.add(t);
+			t.start();
+		}
+		
+		for(TestClient client : clients){
+			client.readFile();
+		}
 		
 	}
 }

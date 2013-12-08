@@ -50,10 +50,6 @@ public class SimpleDFS extends DFS {
 
 	@Override
 	public void init() {
-		
-
-		
-		
 		int inodeBlocks = Constants.MAX_DFILES * Constants.INODE_SIZE
 				/ Constants.BLOCK_SIZE;
 
@@ -128,8 +124,6 @@ public class SimpleDFS extends DFS {
 				int readCount = Math.min(currentCount, Constants.BLOCK_SIZE
 						- Constants.BLOCK_HEADER_LENGTH * Integer.SIZE
 						/ Byte.SIZE);
-
-				//block.read(buffer, currentOffset, readCount);
 
 				int bytesRead = readToBuffer(block, buffer, currentOffset,
 						readCount);
@@ -302,6 +296,8 @@ public class SimpleDFS extends DFS {
 			if (currentBlock.isValid()) {
 				addFile(currentBlock, new NodeLocation(blockID, offset));
 			}
+			else
+				System.out.println("Hey");
 			offset += Constants.INODE_SIZE;
 		}
 		_cache.releaseBlock(block);

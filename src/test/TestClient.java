@@ -23,10 +23,17 @@ public class TestClient implements Runnable {
 		_name = clientName;
 	}
 	
+	public TestClient(DFS dfs, int clientName, int dataAmount, DFileID file){
+		this(dfs, clientName, dataAmount);
+		 _ID = file;
+		
+	}
+	
+	
 	//comment for errorz lolz
 
 	private byte[] getLotsOfBytes(int dataAmount) {
-		Random r = new Random();
+		Random r = new Random(10);
 		byte[] data = new byte[dataAmount];
 		
 		r.nextBytes(data);
