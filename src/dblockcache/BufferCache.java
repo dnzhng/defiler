@@ -10,7 +10,7 @@ public class BufferCache extends DBufferCache {
 
 	private IVirtualDisk _virtualdisk;
 	private int _maxblockcount;
-	private ArrayList<DBuffer> _bufferlist;
+	public ArrayList<DBuffer> _bufferlist;
 	private Set<DBuffer> _heldlist;
 
 	public BufferCache(int cacheSize, IVirtualDisk disk) {
