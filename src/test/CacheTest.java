@@ -13,8 +13,6 @@ import virtualdisk.VD;
 public class CacheTest {
 
 	
-	
-	
 	public static void main(String[] args) throws FileNotFoundException, IOException{
 		IVirtualDisk vd = new VD("scot",false);
 		
