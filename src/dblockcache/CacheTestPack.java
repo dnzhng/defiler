@@ -70,7 +70,8 @@ public class CacheTestPack {
 		//sorry for gross name. 
 		System.out.println("This test shows what happens when two threads try to act on a block\n" +
 				"Before it becomes released. The 2nd thread will wait indefinitely\n" +
-				"until the block is released");
+				"until the block is released\n\n" +
+				"NOTE: Please remember to stop the program");
 		
 		IVirtualDisk vd = new VD("file1", true);
 		DBufferCache cache = new BufferCache(1, vd);
@@ -119,8 +120,8 @@ public class CacheTestPack {
 	
 	private static void displayCache(BufferCache cache, int cacheSize) {
 		int[] temp = new int[cacheSize];
-		for (int i = 0; i < cache._bufferlist.size(); i++) {
-			temp[i] = cache._bufferlist.get(i).getBlockID();
+		for (int i = 0; i < cache.bufferlistcopy.size(); i++) {
+			temp[i] = cache.bufferlistcopy.get(i).getBlockID();
 		}
 		System.out.println(Arrays.toString(temp) + "\n");
 	}
