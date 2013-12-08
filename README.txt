@@ -40,6 +40,16 @@ Assumption: size is the RAW DATA SIZE of a file (does not include inode data or 
 
 If two threads try to r/w the same file, the second one to request r/w from the DFS will block until the first has finished.
 
+If we have reached the maximum amount of files in DFS, then calling DFS.createFile() will return a null DFileID. It is important
+for the clients to take this into account!
+
+
+DFS does not conform to the standard that test programs call .init(). Why? this does not seem like something the TestClient should worry
+about. The test client specifies whether or not to format the DFS instead. If it formats, then there is no reason to call init() (
+everything is already 0). If it decided to not format (i.e. tries to load a previous instance of DFS), then it does need to call init().
+In the various SimpleDFS constructors, we handle the logic of this. That way, the test client only has to worry about to format or not 
+to format.
+
 
 /* 
  * This section should contain the implementation details and a overview of the

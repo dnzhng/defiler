@@ -89,9 +89,19 @@ public class SimpleFileAssistant implements FileAssistant{
 
 	@Override
 	public synchronized DFileID getNextFileID() {
+		
+		if(_freeNames.size() == 0){
+			System.err.println("Maximum files reached!");
+			return null;
+		}
+		
 		int a=_freeNames.pollFirst();
+		
+		
+		
 		_freeNames.remove(a);
 		DFileID ret = new DFileID(a);
+		
 		return ret;
 	}
 

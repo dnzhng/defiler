@@ -31,10 +31,10 @@ public abstract class DFS {
 	/** Initialize all the necessary structures with sizes as specified in the common/Constants.java */
 	public abstract void init();
 
-	/* creates a new DFile and returns the DFileID, which is useful to uniquely identify the DFile*/
+	/** creates a new DFile and returns the DFileID, which is useful to uniquely identify the DFile*/
 	public abstract DFileID createDFile();
 	
-	/* destroys the file specified by the DFileID */
+	/** destroys the file specified by the DFileID */
 	public abstract void destroyDFile(DFileID dFID);
 
 	/**

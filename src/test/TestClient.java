@@ -45,6 +45,11 @@ public class TestClient implements Runnable {
 
 	public void createFile(){
 		_ID = _DFS.createDFile();
+		if(_ID == null){
+			System.out.println("Tried to make file, failed to get file pointer.");
+			return;
+		}
+		
 		boolean x = true;
 		for( DFileID id : _DFS.listAllDFiles()){
 			if(!id.equals(_ID)){
@@ -56,11 +61,23 @@ public class TestClient implements Runnable {
 	}
 
 	public void writeFile(){
+		
+		if(_ID == null){
+			System.out.println("can't write null file");
+			return;
+		}
+		
 		_DFS.write(_ID, _writeBuffer, 0, _writeBuffer.length);
 		System.out.println("Wrote file: " + _ID.getDFileID());
 	}
 	
 	public void readFile(){
+		
+		if(_ID == null){
+			System.out.println("can't read null file");
+			return;
+		}
+		
 		
 		byte[] buffer = new byte[_writeBuffer.length];
 
@@ -76,6 +93,13 @@ public class TestClient implements Runnable {
 	}
 	
 	public void destroyFile(){
+		
+		if(_ID == null){
+			System.out.println("can't destroy null file");
+			return;
+		}
+		
+		
 		byte[] buffer = new byte[_writeBuffer.length];
 		_DFS.destroyDFile(_ID);
 		try{

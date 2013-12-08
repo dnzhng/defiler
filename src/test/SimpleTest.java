@@ -16,7 +16,7 @@ public class SimpleTest {
 
 		DFS dfs;
 		try {
-			dfs = new SimpleDFS(Constants.NUM_OF_BLOCKS, true);
+			dfs = new SimpleDFS( true);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			return;
@@ -81,29 +81,29 @@ public class SimpleTest {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		int numClients = 1;
+		int numClients = 5;
 		int numFiles = numClients;
 		
 		
 		
 		makeFiles(numClients, Constants.BLOCK_SIZE);
 		
-//		try {
-//			Thread.sleep(2000);
-//		} catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		
-		//loadFilesAndVerify(numFiles);
+		loadFilesAndVerify(numFiles);
 		
 	}
 
 	private static void loadFilesAndVerify(int numFiles) {
 		DFS dfs;
 		try {
-			dfs = new SimpleDFS(Constants.NUM_OF_BLOCKS, false);
+			dfs = new SimpleDFS(false);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			return;
