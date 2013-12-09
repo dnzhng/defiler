@@ -3,8 +3,6 @@ package dfs;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
 import java.util.List;
 
 import virtualdisk.IVirtualDisk;
@@ -180,7 +178,7 @@ public class SimpleDFS extends DFS {
 			
 			int prevBlock = -1;
 			int currentBlock = file.getHeadBlock();
-			int currentOffset = 0;// should be else
+			int currentOffset = startOffset;
 			int currentCount = count;
 
 			while (currentCount > 0) {

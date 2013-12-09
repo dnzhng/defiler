@@ -126,22 +126,15 @@ public class CacheTestPack {
 	}
 	
 	public static void main(String args[]) throws FileNotFoundException, IOException {
-		@SuppressWarnings("resource")
-		Scanner userInputScanner = new Scanner(System.in);
-		System.out.println("Which test would you like to run?\n" +
-				"1. MultiBlocks\n" +
-				"2. Two Threads One Block\n" +
-				"3. LRU Test");
-		int choice = userInputScanner.nextInt();
-		if (choice == 1) 
+		//@SuppressWarnings("resource")
+//		Scanner userInputScanner = new Scanner(System.in);
+//		System.out.println("Which test would you like to run?\n" +
+//				"1. MultiBlocks\n" +
+//				"2. Two Threads One Block\n" +
+//				"3. LRU Test");
 			multiblocks();
-		else if (choice == 2)
-			twothreadsoneblock();
-		else if (choice == 3)
+			//twothreadsoneblock();
 			testLRU();
-		else
-			System.out.println("This test does not exist");
-		
 		
 		
 		
