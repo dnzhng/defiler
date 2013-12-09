@@ -11,7 +11,7 @@ public class BufferCache extends DBufferCache {
 	private IVirtualDisk _virtualdisk;
 	private int _maxblockcount;
 	private ArrayList<DBuffer> _bufferlist;
-	public ArrayList<DBuffer> bufferlistcopy;
+	//public ArrayList<DBuffer> bufferlistcopy; //USED FOR TESTING
 	private Set<DBuffer> _heldlist;
 
 	public BufferCache(int cacheSize, IVirtualDisk disk) {
@@ -27,11 +27,11 @@ public class BufferCache extends DBufferCache {
 		DBuffer buffer;
 		if(inCache(blockID)){
 			buffer = pullFromCache(blockID);
-			bufferlistcopy = _bufferlist;
+			//bufferlistcopy = _bufferlist; //USED FOR TESTING
 		}
 		else{
 			buffer = pullFromDisk(blockID);
-			bufferlistcopy = _bufferlist;
+			//bufferlistcopy = _bufferlist; //USED FOR TESTING
 		}
 		buffer.waitValid();
 		while(_heldlist.contains(buffer)){

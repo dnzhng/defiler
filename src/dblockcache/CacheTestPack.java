@@ -67,7 +67,6 @@ public class CacheTestPack {
 	}
 	
 	public static void twothreadsoneblock() throws FileNotFoundException, IOException {
-		//sorry for gross name. 
 		System.out.println("This test shows what happens when two threads try to act on a block\n" +
 				"Before it becomes released. The 2nd thread will wait indefinitely\n" +
 				"until the block is released\n\n" +
