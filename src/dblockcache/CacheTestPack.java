@@ -1,12 +1,9 @@
-package test;
+package dblockcache;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
-import dblockcache.BufferCache;
-import dblockcache.DBuffer;
-import dblockcache.DBufferCache;
 import virtualdisk.IVirtualDisk;
 import virtualdisk.VD;
 
@@ -15,6 +12,7 @@ import virtualdisk.VD;
 public class CacheTestPack {
 	
 	public static void multiblocks() throws FileNotFoundException, IOException {
+		System.out.println("This is a typical usage of the cache");
 		IVirtualDisk vd = new VD("file1", true);
 		
 		DBufferCache cache = new BufferCache(3, vd);
@@ -70,6 +68,10 @@ public class CacheTestPack {
 	
 	public static void twothreadsoneblock() throws FileNotFoundException, IOException {
 		//sorry for gross name. 
+		System.out.println("This test shows what happens when two threads try to act on a block\n" +
+				"Before it becomes released. The 2nd thread will wait indefinitely\n" +
+				"until the block is released\n\n" +
+				"NOTE: Please remember to stop the program");
 		
 		IVirtualDisk vd = new VD("file1", true);
 		DBufferCache cache = new BufferCache(1, vd);
@@ -83,6 +85,7 @@ public class CacheTestPack {
 	}
 	
 	public static void testLRU() throws FileNotFoundException, IOException {
+		System.out.println("This test attempts to show the LRU in action");
 		IVirtualDisk vd = new VD("file1", true);
 		DBufferCache cache = new BufferCache(10, vd);
 		DBuffer[] buffers = new DBuffer[10];
@@ -95,35 +98,32 @@ public class CacheTestPack {
 		}
 		
 		cache.sync();
-		displayCache(cache, 10);
+		System.out.println("The initial cache looks like this");
+		displayCache((BufferCache) cache, 10); //Should be 0 1 2 3 4 5 6 8 9
+		
 		byte[] temp = new byte[2];
-		DBuffer movingBlock1 = cache.getBlock(0);
-		movingBlock1.read(temp, 0, 2);
-		cache.releaseBlock(movingBlock1);
-		displayCache(cache, 10);
+		DBuffer movingBlock0 = cache.getBlock(0);
+		movingBlock0.read(temp, 0, 2);
+		cache.releaseBlock(movingBlock0);
+		System.out.println("The LRU block was used, moved to the MRU position");
+		displayCache((BufferCache) cache, 10); //Should be 1 2 3 4 5 6 7 9 0
 		
 		byte[] newstuff = new byte[2];
 		DBuffer replacingBlock1 = cache.getBlock(10); 
 		
-		movingBlock1.read(newstuff, 0, 2);
+		replacingBlock1.read(newstuff, 0, 2);
 		cache.releaseBlock(replacingBlock1);
-		displayCache(cache, 10);
+		System.out.println("The LRU block has been replaced");
+		displayCache((BufferCache) cache, 10); //Should be 2 3 4 5 6 7 9 0 10
 		
 	}
 	
-	private static void displayCache(DBufferCache cache, int cacheSize) {
-		byte[] cacheDisplay = new byte[2*cacheSize];
-		for(int i = 0; i < cacheSize; i++) {
-			DBuffer temp = cache.getBlock(i);
-			temp.read(cacheDisplay, 2*i, 2);
-			cache.releaseBlock(temp);
+	private static void displayCache(BufferCache cache, int cacheSize) {
+		int[] temp = new int[cacheSize];
+		for (int i = 0; i < cache.bufferlistcopy.size(); i++) {
+			temp[i] = cache.bufferlistcopy.get(i).getBlockID();
 		}
-		
-		System.out.print("The cache looks like: ");
-		for (int j = 0; j < cacheDisplay.length; j++) {
-			System.out.print(cacheDisplay[j] + " ");
-		}
-		System.out.print("\n");
+		System.out.println(Arrays.toString(temp) + "\n");
 	}
 	
 	public static void main(String args[]) throws FileNotFoundException, IOException {
